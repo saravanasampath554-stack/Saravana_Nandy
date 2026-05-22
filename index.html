@@ -3,39 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Measurement Verifier</title>
+    <title>Nandy Calculations</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         h1 { text-align: center; margin: 20px 0 6px; color: #1a73e8; }
         .subtitle { text-align: center; color: #666; margin-bottom: 20px; font-size: 14px; }
-        .tabs { display: flex; gap: 0; margin-bottom: 0; }
-        .tab-btn { flex: 1; padding: 12px 20px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; background: #e0e2e5; color: #666; border-radius: 10px 10px 0 0; transition: all 0.2s; }
-        .tab-btn.active { background: #fff; color: #1a73e8; box-shadow: 0 -2px 6px rgba(0,0,0,0.06); }
-        .tab-btn:hover:not(.active) { background: #d5d7da; }
-        .tab-content { display: none; background: #fff; border-radius: 0 0 12px 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .tab-content.active { display: block; }
-        .split { display: flex; gap: 20px; flex-wrap: wrap; }
-        .split .left { flex: 0 0 380px; max-width: 380px; }
-        .split .right { flex: 1; min-width: 400px; }
-        .img-panel { background: #f8f9fa; border-radius: 10px; padding: 14px; }
-        .img-panel h3 { color: #1a73e8; margin-bottom: 10px; font-size: 14px; }
-        .img-upload-box { border: 2px dashed #ccc; border-radius: 8px; padding: 30px 16px; text-align: center; cursor: pointer; transition: all 0.2s; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .img-upload-box:hover { border-color: #1a73e8; background: #e8f0fe; }
-        .img-upload-box svg { width: 36px; height: 36px; fill: #999; margin-bottom: 8px; }
-        .img-upload-box p { color: #666; font-size: 13px; }
-        .img-upload-box input { display: none; }
-        .img-preview { max-width: 100%; border-radius: 6px; cursor: zoom-in; }
-        .img-controls { display: flex; gap: 6px; margin-top: 8px; }
-        .img-controls button { flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: 12px; }
-        .img-controls button:hover { background: #e8f0fe; border-color: #1a73e8; }
-        .file-upload-area { margin-top: 14px; padding-top: 14px; border-top: 1px solid #eee; }
-        .file-upload-inline { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-        .file-upload-inline label { padding: 8px 16px; background: #1a73e8; color: #fff; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; white-space: nowrap; }
-        .file-upload-inline label:hover { background: #1557b0; }
-        .file-upload-inline input { display: none; }
-        .file-upload-inline .hint { font-size: 12px; color: #999; }
         .data-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
         .data-table th { background: #1a73e8; color: #fff; padding: 8px 4px; font-size: 12px; text-align: center; white-space: nowrap; }
         .data-table th:first-child { border-radius: 8px 0 0 0; }
@@ -63,73 +37,24 @@
         .sbox.b .v { color: #1a73e8; }
         .total-row { background: #f0f2f5; font-weight: 700; }
         .total-row td { padding: 8px 4px; }
-        .results { margin-top: 16px; }
-        .result-table { background: #f8f9fa; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
-        .result-table h3 { margin-bottom: 10px; color: #1a73e8; font-size: 14px; }
-        .result-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .result-table th { background: #e8eaed; color: #333; padding: 6px 8px; text-align: center; font-size: 12px; }
-        .result-table td { padding: 5px 8px; text-align: center; border-bottom: 1px solid #eee; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-        .badge.ok { background: #e6f4ea; color: #188038; }
-        .badge.err { background: #fce8e6; color: #d93025; }
         .kb-hint { font-size: 11px; color: #999; margin-top: 6px; }
         .kb-hint kbd { background: #e8eaed; border: 1px solid #ccc; border-radius: 3px; padding: 1px 5px; font-size: 10px; font-family: inherit; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>&#128207; Measurement Verifier</h1>
-    <p class="subtitle">Verifies No × L × B × D = Content</p>
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('upload')">&#128196; Upload &amp; OCR</button>
-        <button class="tab-btn" onclick="switchTab('manual')">&#9997; Manual Entry</button>
-    </div>
-    <div class="tab-content active" id="tab-upload">
-        <div class="split">
-            <div class="left">
-                <div class="img-panel">
-                    <h3>&#128247; Image / File Upload</h3>
-                    <div class="img-upload-box" id="imgBox">
-                        <svg viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2zM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5z"/></svg>
-                        <p><strong>Click or drop</strong> an image here<br><span style="font-size:11px;color:#999">PNG, JPG, BMP, TIFF, Excel, CSV, PDF</span></p>
-                        <input type="file" id="imgInput" accept=".png,.jpg,.jpeg,.bmp,.tiff,.xlsx,.xls,.csv,.pdf">
-                    </div>
-                    <div id="imgPreviewWrap" style="display:none; margin-top:10px; max-height:500px; overflow:auto; border-radius:6px;">
-                        <img id="imgPreview" class="img-preview" src="">
-                    </div>
-                    <div class="img-controls" id="imgControls" style="display:none">
-                        <button onclick="zoomImg(-1)">&#8722; Zoom</button>
-                        <button onclick="zoomImg(0)">Fit</button>
-                        <button onclick="zoomImg(1)">&#43; Zoom</button>
-                        <button onclick="clearImg()">&#10005; Clear</button>
-                    </div>
-                    <div class="file-upload-area">
-                        <div class="file-upload-inline">
-                            <label for="dataFileInput">&#128196; Or choose file</label>
-                            <input type="file" id="dataFileInput" accept=".xlsx,.xls,.csv,.pdf,.png,.jpg,.jpeg,.bmp,.tiff">
-                            <span class="hint">Excel, CSV, PDF, or Image</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="right">
-                <div id="fileStatus" style="margin-bottom:10px; font-size:13px;"></div>
-                <div id="fileResults" class="results">
-                    <p style="color:#999; text-align:center; padding:40px 0;">Upload a file to see OCR results &amp; verification here.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="tab-content" id="tab-manual">
+    <h1>&#128207; Nandy Calculations</h1>
+    <p class="subtitle">Verifies No &times; L &times; B &times; D = Content</p>
+    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
         <table class="data-table" id="manualTable">
             <thead><tr>
                 <th style="width:28px">#</th>
-                <th style="width:80px">No</th>
+                <th style="width:120px">No</th>
                 <th style="width:80px">L</th>
                 <th style="width:80px">B</th>
                 <th style="width:80px">D</th>
                 <th style="width:90px">Content<br><span style="font-weight:400;font-size:10px">(Given)</span></th>
-                <th style="width:90px">Calc<br><span style="font-weight:400;font-size:10px">(No×L×B×D)</span></th>
+                <th style="width:90px">Calc<br><span style="font-weight:400;font-size:10px">(No&times;L&times;B&times;D)</span></th>
                 <th style="width:70px">Diff</th>
                 <th style="width:36px"></th>
                 <th style="width:28px"></th>
@@ -154,8 +79,10 @@
             <kbd>&#8593;</kbd> <kbd>&#8595;</kbd> <kbd>&#8592;</kbd> <kbd>&#8594;</kbd> navigate cells |
             <kbd>Tab</kbd> next cell |
             <kbd>Enter</kbd> move down |
-            <kbd>Shift+Enter</kbd> move up |
-            Supports: <code>2*3</code>, <code>2x3x4</code>
+            <kbd>Ctrl+Z</kbd> undo |
+            <kbd>Ctrl+Y</kbd> redo |
+            Supports: <code>2*3</code>, <code>2x3x4</code> |
+            Paste from Excel supported
         </p>
         <div class="summary">
             <div class="sbox b"><div class="v" id="sRows">0</div><div class="l">Rows</div></div>
@@ -166,40 +93,63 @@
     </div>
 </div>
 <script>
-function switchTab(tab) {
-    document.querySelectorAll('.tab-btn').forEach((b, i) => {
-        b.classList.toggle('active', (tab==='upload'&&i===0)||(tab==='manual'&&i===1));
-    });
-    document.getElementById('tab-upload').classList.toggle('active', tab==='upload');
-    document.getElementById('tab-manual').classList.toggle('active', tab==='manual');
-}
-const imgBox=document.getElementById('imgBox'), imgInput=document.getElementById('imgInput');
-const imgPreview=document.getElementById('imgPreview'), imgPreviewWrap=document.getElementById('imgPreviewWrap');
-const imgControls=document.getElementById('imgControls');
-let imgZoom=100;
-imgBox.addEventListener('click',()=>imgInput.click());
-imgBox.addEventListener('dragover',e=>{e.preventDefault();imgBox.style.borderColor='#1a73e8';});
-imgBox.addEventListener('dragleave',()=>{imgBox.style.borderColor='#ccc';});
-imgBox.addEventListener('drop',e=>{e.preventDefault();imgBox.style.borderColor='#ccc';if(e.dataTransfer.files.length){showImagePreview(e.dataTransfer.files[0]);uploadFile(e.dataTransfer.files[0]);}});
-imgInput.addEventListener('change',()=>{if(imgInput.files.length){showImagePreview(imgInput.files[0]);uploadFile(imgInput.files[0]);}});
-function showImagePreview(file){
-    if(/\.(png|jpg|jpeg|bmp|tiff)$/i.test(file.name)){
-        const url=URL.createObjectURL(file);imgPreview.src=url;
-        imgPreviewWrap.style.display='block';imgControls.style.display='flex';imgBox.style.display='none';
-        imgZoom=100;imgPreview.style.width='100%';
-    }
-}
-function zoomImg(d){if(d===0)imgZoom=100;else imgZoom+=d*25;imgZoom=Math.max(50,Math.min(400,imgZoom));imgPreview.style.width=imgZoom+'%';}
-function clearImg(){imgPreviewWrap.style.display='none';imgControls.style.display='none';imgBox.style.display='flex';imgInput.value='';}
-
 const COLS=['No','L','B','D','Content'];
 let rowCount=0;
+
+// Undo/Redo system
+const undoStack=[], redoStack=[];
+const MAX_UNDO=50;
+function getTableState(){
+    const rows=[];
+    document.querySelectorAll('#manualBody tr').forEach(tr=>{
+        const vals={};
+        tr.querySelectorAll('input').forEach(inp=>{vals[inp.dataset.col]=inp.value;});
+        rows.push(vals);
+    });
+    return JSON.stringify(rows);
+}
+function saveState(){
+    const s=getTableState();
+    if(undoStack.length>0&&undoStack[undoStack.length-1]===s)return;
+    undoStack.push(s);
+    if(undoStack.length>MAX_UNDO)undoStack.shift();
+    redoStack.length=0;
+}
+function restoreState(json){
+    const rows=JSON.parse(json);
+    const tbody=document.getElementById('manualBody');
+    tbody.innerHTML='';rowCount=0;
+    rows.forEach(vals=>{
+        addRow(true);
+        const tr=tbody.lastElementChild;
+        tr.querySelectorAll('input').forEach(inp=>{
+            if(vals[inp.dataset.col]!==undefined)inp.value=vals[inp.dataset.col];
+        });
+        recalcRow(tr);
+    });
+}
+function undo(){
+    if(undoStack.length<2)return;
+    redoStack.push(undoStack.pop());
+    restoreState(undoStack[undoStack.length-1]);
+}
+function redo(){
+    if(redoStack.length===0)return;
+    const s=redoStack.pop();
+    undoStack.push(s);
+    restoreState(s);
+}
+document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo();}
+    if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo();}
+});
+
 function parseExpr(raw){
     if(!raw||!raw.trim())return null;raw=raw.trim();
     if(/[*xX\u00d7]/.test(raw)){const parts=raw.split(/[*xX\u00d7]/);let r=1;for(const p of parts){const n=parseFloat(p.trim());if(isNaN(n))return null;r*=n;}return r;}
     const v=parseFloat(raw);return isNaN(v)?null:v;
 }
-function addRow(){
+function addRow(skipSave){
     rowCount++;const tr=document.createElement('tr');
     tr.innerHTML='<td class="row-num">'+rowCount+'</td>'
         +'<td style="white-space:nowrap"><input type="text" data-col="No1" placeholder="1" style="width:38%;text-align:center"> <span style="color:#888;font-weight:bold">&times;</span> <input type="text" data-col="No2" placeholder="1" style="width:38%;text-align:center"></td>'
@@ -212,7 +162,13 @@ function addRow(){
         +'<td data-f="st">\u2014</td>'
         +'<td><button class="del-btn" onclick="delRow(this)" title="Delete">&#10005;</button></td>';
     document.getElementById('manualBody').appendChild(tr);
-    tr.querySelectorAll('input').forEach(inp=>{inp.addEventListener('input',()=>recalcRow(tr));inp.addEventListener('keydown',handleCellNav);});
+    let debounceTimer;
+    tr.querySelectorAll('input').forEach(inp=>{
+        inp.addEventListener('input',()=>{recalcRow(tr);clearTimeout(debounceTimer);debounceTimer=setTimeout(saveState,300);});
+        inp.addEventListener('keydown',handleCellNav);
+        inp.addEventListener('paste',handlePaste);
+    });
+    if(!skipSave)saveState();
 }
 function recalcRow(tr){
     const g=col=>parseExpr(tr.querySelector('input[data-col="'+col+'"]')?.value);
@@ -248,9 +204,9 @@ function updateTotals(){
     document.getElementById('ftDiff').textContent=rows>0?td:0;
     document.getElementById('ftStatus').innerHTML=rows>0?(Math.abs(td)<0.01?'<span style="color:#188038">&#10003;</span>':'<span style="color:#d93025">&#10007;</span>'):'';
 }
-function delRow(btn){btn.closest('tr').remove();renum();updateTotals();}
+function delRow(btn){saveState();btn.closest('tr').remove();renum();updateTotals();saveState();}
 function renum(){document.querySelectorAll('#manualBody tr').forEach((tr,i)=>{tr.querySelector('.row-num').textContent=i+1;});}
-function clearAll(){document.getElementById('manualBody').innerHTML='';rowCount=0;for(let i=0;i<10;i++)addRow();updateTotals();}
+function clearAll(){saveState();document.getElementById('manualBody').innerHTML='';rowCount=0;for(let i=0;i<10;i++)addRow(true);updateTotals();saveState();}
 function downloadCSV(){
     let csv='No1,No2,L,B,D,Content\n';
     document.querySelectorAll('#manualBody tr').forEach(tr=>{
@@ -258,6 +214,32 @@ function downloadCSV(){
         csv+=vals.join(',')+'\n';
     });
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='measurement_data.csv';a.click();
+}
+function handlePaste(e){
+    const clip=e.clipboardData.getData('text/plain');
+    if(!clip)return;
+    const lines=clip.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
+    if(lines.length<=1&&!clip.includes('\t'))return;
+    e.preventDefault();
+    saveState();
+    const inp=e.target,tr=inp.closest('tr'),tbody=tr.closest('tbody');
+    const allRows=Array.from(tbody.querySelectorAll('tr'));
+    const startRow=allRows.indexOf(tr);
+    const allCells=Array.from(tr.querySelectorAll('input'));
+    const startCol=allCells.indexOf(inp);
+    for(let r=0;r<lines.length;r++){
+        const cells=lines[r].split('\t');
+        let rowIdx=startRow+r;
+        while(rowIdx>=document.querySelectorAll('#manualBody tr').length)addRow(true);
+        const row=document.querySelectorAll('#manualBody tr')[rowIdx];
+        const inputs=Array.from(row.querySelectorAll('input'));
+        for(let c=0;c<cells.length;c++){
+            const colIdx=startCol+c;
+            if(colIdx<inputs.length){inputs[colIdx].value=cells[c].trim();}
+        }
+        recalcRow(row);
+    }
+    saveState();
 }
 function handleCellNav(e){
     const inp=e.target,tr=inp.closest('tr'),tbody=tr.closest('tbody');
@@ -275,7 +257,7 @@ function handleCellNav(e){
             else{if(rowIdx===allRows.length-1){addRow();}tR=Math.min(allRows.length,rowIdx+1);}
             handled=true;break;
         case'Tab':
-            if(e.shiftKey){if(colIdx===0&&rowIdx>0){tR=rowIdx-1;tC=COLS.length-1;handled=true;}}
+            if(e.shiftKey){if(colIdx===0&&rowIdx>0){tR=rowIdx-1;tC=allCells.length-1;handled=true;}}
             else{if(colIdx===allCells.length-1){if(rowIdx===allRows.length-1)addRow();tR=rowIdx+1;tC=0;handled=true;}}
             break;
     }
@@ -286,46 +268,8 @@ function handleCellNav(e){
         if(newRow){const inputs=newRow.querySelectorAll('input');const t=inputs[Math.min(tC,inputs.length-1)];if(t){t.focus();t.select();}}
     }
 }
-for(let i=0;i<10;i++)addRow();
-
-const dataFileInput=document.getElementById('dataFileInput');
-const fileStatus=document.getElementById('fileStatus');
-const fileResults=document.getElementById('fileResults');
-dataFileInput.addEventListener('change',()=>{if(dataFileInput.files.length)uploadFile(dataFileInput.files[0]);});
-function uploadFile(file){
-    const isImage=/\.(png|jpg|jpeg|bmp|tiff)$/i.test(file.name);
-    fileStatus.innerHTML='<span style="color:#1a73e8">&#9203; Processing <strong>'+file.name+'</strong>'+(isImage?' (OCR may take a moment)':'')+'...</span>';
-    fileResults.innerHTML='';
-    const fd=new FormData();fd.append('file',file);
-    fetch(window.location.origin+'/api/upload',{method:'POST',body:fd})
-    .then(r=>r.json()).then(data=>{
-        if(data.error){
-            fileStatus.innerHTML='<span style="color:#d93025">&#10007; '+data.error+'</span>';
-            if(data.image_url){imgPreview.src=window.location.origin+data.image_url;imgPreviewWrap.style.display='block';imgControls.style.display='flex';imgBox.style.display='none';}
-            return;
-        }
-        if(data.image_url){imgPreview.src=window.location.origin+data.image_url;imgPreviewWrap.style.display='block';imgControls.style.display='flex';imgBox.style.display='none';}
-        fileStatus.innerHTML='<span style="color:#188038">&#10003; Processed <strong>'+data.filename+'</strong> \u2014 '+data.total_tables+' table(s)</span>';
-        let html='';
-        data.tables.forEach(t=>{
-            html+='<div class="result-table"><h3>'+t.sheet_name+'</h3>';
-            if(t.error){html+='<p style="color:#d93025">'+t.error+'</p>';}
-            else{
-                html+='<table><thead><tr><th>Row</th><th>No</th><th>L</th><th>B</th><th>D</th><th>Given</th><th>Calc</th><th>Diff</th><th>Status</th></tr></thead><tbody>';
-                t.rows.forEach(r=>{
-                    let b='\u2014';if(r.is_correct===true)b='<span class="badge ok">&#10003;</span>';else if(r.is_correct===false)b='<span class="badge err">&#10007;</span>';
-                    html+='<tr><td>'+r.row+'</td><td>'+f(r.No)+'</td><td>'+f(r.L)+'</td><td>'+f(r.B)+'</td><td>'+f(r.D)+'</td><td>'+f(r.content_given)+'</td><td>'+f(r.content_calculated)+'</td><td>'+f(r.difference)+'</td><td>'+b+'</td></tr>';
-                });
-                html+='</tbody></table>';
-                const s=t.summary;
-                html+='<p style="margin-top:8px;font-size:13px;color:#666">Rows: '+s.total_rows+' | <span style="color:#188038">Correct: '+s.correct+'</span> | <span style="color:#d93025">Incorrect: '+s.incorrect+'</span> | Content Sum: '+s.content_sum+'</p>';
-            }
-            html+='</div>';
-        });
-        fileResults.innerHTML=html;
-    }).catch(()=>{fileStatus.innerHTML='<span style="color:#d93025">&#10007; Network error</span>';});
-}
-function f(v){return v===null||v===undefined?'\u2014':v;}
+for(let i=0;i<10;i++)addRow(true);
+saveState();
 </script>
 </body>
 </html>
