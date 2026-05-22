@@ -121,47 +121,27 @@
     </style>
 </head>
 <body>
-<!-- Account Entry -->
-<div class="overlay" id="acctOverlay">
+<!-- Bill Details Form (first screen) -->
+<div class="overlay" id="billFormOverlay">
     <div class="overlay-box">
         <h2>&#128207; Nandy Calculations</h2>
-        <p class="sub">Enter your account / project name</p>
-        <input type="text" id="acctInput" placeholder="Account Name" autofocus>
-        <button class="btn-primary" onclick="enterAccount()">Enter</button>
-    </div>
-</div>
-
-<!-- Bill Details Form -->
-<div class="overlay" id="billFormOverlay" style="display:none;">
-    <div class="overlay-box">
-        <h2>&#128196; Bill Details</h2>
-        <p class="sub">Enter details for this sheet</p>
-        <input type="text" id="formSheet" placeholder="Sheet Name">
+        <p class="sub">Enter details to start or open a saved bill below</p>
+        <input type="text" id="formSheet" placeholder="Sheet Name" autofocus>
         <input type="text" id="formBill" placeholder="Bill Number">
         <input type="text" id="formDate" placeholder="Date (DD-MM-YYYY)">
         <button class="btn-primary" onclick="submitBillForm()">Next &#8594;</button>
+        <div style="margin-top:16px;text-align:left;">
+            <h3 style="color:#2e7d32;font-size:13px;margin-bottom:6px;">&#128193; Saved Bills</h3>
+            <div class="bills-list" id="startBillsList" style="max-height:150px;"><em style="color:#999;font-size:12px;">Loading...</em></div>
+        </div>
     </div>
 </div>
 
 <div class="container" id="mainApp" style="display:none;">
     <h1>&#128207; Nandy Calculations</h1>
     <p class="subtitle">Verifies No &times; L &times; B &times; D = Content</p>
-    <div style="text-align:center;margin-bottom:4px;">
-        <span style="font-size:13px;color:#888;">Account: </span><span style="font-size:14px;font-weight:700;color:#1565c0;" id="acctLabel"></span>
-        <button class="btn btn-sm" onclick="switchAccount()" style="margin-left:10px;font-size:11px;padding:3px 8px;">Switch Account</button>
-    </div>
 
-    <!-- Saved Bills Panel -->
-    <div class="bills-panel" id="billsPanel">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <h3>&#128193; Saved Bills</h3>
-            <div>
-                <button class="btn btn-sm btn-new" onclick="newBill()">+ New Bill</button>
-                <button class="btn btn-sm" onclick="loadBillsList()">&#8635; Refresh</button>
-            </div>
-        </div>
-        <div class="bills-list" id="billsList"><em style="color:#999;font-size:12px;">No saved bills yet.</em></div>
-    </div>
+
     <div style="text-align:center;margin-bottom:12px;display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;">
         <span style="font-size:13px;color:#888;">Sheet:</span>
         <span style="font-size:16px;font-weight:700;color:#2e7d32;cursor:pointer;" id="sheetLabel" onclick="inlineEdit('sheetLabel','sheetName')"></span>
@@ -207,6 +187,7 @@
             <button class="btn btn-sm btn-del" onclick="deleteLastRow()">&#8722; Row</button>
             <button class="btn btn-sm" onclick="clearAll()">Clear All</button>
             <span class="spacer"></span>
+            <button class="btn btn-sm btn-new" onclick="newBill()">+ New Bill</button>
             <button class="btn btn-sm btn-save" onclick="saveBill()">&#128190; Save</button>
             <button class="btn btn-sm" onclick="downloadCSV()">&#11015; CSV</button>
         </div>
@@ -234,39 +215,16 @@ let rowCount=0;
 let sheetName='';
 let billNumber='';
 let billDate='';
-let accountName='';
+const accountName='default';
 
-// ── Account Entry ────────────────────────────────────────────────
-document.getElementById('acctInput').addEventListener('keydown',e=>{if(e.key==='Enter')enterAccount();});
-
-function enterAccount(){
-    const v=document.getElementById('acctInput').value.trim();
-    if(!v){alert('Please enter an account name.');return;}
-    accountName=v;
-    document.getElementById('acctOverlay').style.display='none';
-    document.getElementById('mainApp').style.display='block';
-    document.getElementById('acctLabel').textContent=accountName;
-    loadBillsList();
-}
-function switchAccount(){
-    accountName='';
-    document.getElementById('mainApp').style.display='none';
-    document.getElementById('acctOverlay').style.display='flex';
-    document.getElementById('acctInput').value='';
-    document.getElementById('acctInput').focus();
-    document.getElementById('manualBody').innerHTML='';rowCount=0;
-}
-
-// ── Bill Details Form (single window) ────────────────────────────
-function showBillForm(){
+// ── Bill Details Form ────────────────────────────────────────────
+(function(){
     const today=new Date();
     const dd=String(today.getDate()).padStart(2,'0')+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+today.getFullYear();
-    document.getElementById('formSheet').value='';
-    document.getElementById('formBill').value='';
     document.getElementById('formDate').value=dd;
-    document.getElementById('billFormOverlay').style.display='flex';
-    document.getElementById('formSheet').focus();
-}
+    loadStartBills();
+})();
+
 function submitBillForm(){
     const s=document.getElementById('formSheet').value.trim();
     const b=document.getElementById('formBill').value.trim();
@@ -277,6 +235,7 @@ function submitBillForm(){
     billNumber=b;
     billDate=d||'';
     document.getElementById('billFormOverlay').style.display='none';
+    document.getElementById('mainApp').style.display='block';
     updateHeaderDisplay();
     // Reset table for new bill
     const tbody=document.getElementById('manualBody');
@@ -284,7 +243,17 @@ function submitBillForm(){
     for(let i=0;i<10;i++)addRow(true);
     undoStack.length=0;redoStack.length=0;saveState();
 }
-function newBill(){showBillForm();}
+function newBill(){
+    document.getElementById('mainApp').style.display='none';
+    const today=new Date();
+    const dd=String(today.getDate()).padStart(2,'0')+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+today.getFullYear();
+    document.getElementById('formSheet').value='';
+    document.getElementById('formBill').value='';
+    document.getElementById('formDate').value=dd;
+    document.getElementById('billFormOverlay').style.display='flex';
+    document.getElementById('formSheet').focus();
+    loadStartBills();
+}
 
 // ── Save / Load / List bills ─────────────────────────────────────
 function getRowData(){
@@ -302,41 +271,43 @@ async function saveBill(){
     try{
         const res=await fetch('/api/bills/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
         const j=await res.json();
-        if(j.ok){alert('Saved successfully: '+j.filename);loadBillsList();}
+        if(j.ok){alert('Saved: '+j.filename);}
         else{alert('Save error: '+(j.error||'Unknown'));}
     }catch(e){alert('Save failed: '+e.message);}
 }
-async function loadBillsList(){
-    if(!accountName)return;
+function escH(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function renderBillsList(el, bills){
+    if(!bills||bills.length===0){el.innerHTML='<em style="color:#999;font-size:12px;">No saved bills yet.</em>';return;}
+    el.innerHTML='';
+    bills.forEach(b=>{
+        const div=document.createElement('div');div.className='bill-item';
+        const infoDiv=document.createElement('div');infoDiv.className='bill-info';
+        infoDiv.innerHTML='<span style="font-weight:600">'+escH(b.sheetName||'')+'</span>'
+            +'<span style="color:#1565c0">Bill#: '+escH(b.billNumber||'')+'</span>'
+            +'<span style="color:#888">'+escH(b.billDate||'')+'</span>';
+        infoDiv.addEventListener('click',()=>openBill(b.filename));
+        const delBtn=document.createElement('button');delBtn.className='bill-del';delBtn.innerHTML='&#10005;';
+        delBtn.addEventListener('click',async ()=>{if(!confirm('Delete this bill?'))return;await fetch('/api/bills/delete/'+encodeURIComponent(accountName)+'/'+encodeURIComponent(b.filename),{method:'DELETE'});loadStartBills();});
+        div.appendChild(infoDiv);div.appendChild(delBtn);
+        el.appendChild(div);
+    });
+}
+async function loadStartBills(){
     try{
         const res=await fetch('/api/bills/list/'+encodeURIComponent(accountName));
         const j=await res.json();
-        const el=document.getElementById('billsList');
-        if(!j.bills||j.bills.length===0){el.innerHTML='<em style="color:#999;font-size:12px;">No saved bills yet. Click "+ New Bill" to start.</em>';return;}
-        el.innerHTML='';
-        j.bills.forEach(b=>{
-            const div=document.createElement('div');div.className='bill-item';
-            const infoDiv=document.createElement('div');infoDiv.className='bill-info';
-            infoDiv.innerHTML='<span style="font-weight:600">'+escH(b.sheetName||'')+'</span>'
-                +'<span style="color:#1565c0">Bill#: '+escH(b.billNumber||'')+'</span>'
-                +'<span style="color:#888">'+escH(b.billDate||'')+'</span>';
-            infoDiv.addEventListener('click',()=>openBill(b.filename));
-            const delBtn=document.createElement('button');delBtn.className='bill-del';delBtn.innerHTML='&#10005;';
-            delBtn.addEventListener('click',()=>deleteBill(b.filename));
-            div.appendChild(infoDiv);div.appendChild(delBtn);
-            el.appendChild(div);
-        });
-    }catch(e){console.error('List bills error',e);}
+        renderBillsList(document.getElementById('startBillsList'),j.bills);
+    }catch(e){document.getElementById('startBillsList').innerHTML='<em style="color:#999;font-size:12px;">Could not load bills.</em>';}
 }
-function escH(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 async function openBill(filename){
     try{
         const res=await fetch('/api/bills/load/'+encodeURIComponent(accountName)+'/'+encodeURIComponent(filename));
         const j=await res.json();
         if(j.error){alert(j.error);return;}
         sheetName=j.sheetName||'';billNumber=j.billNumber||'';billDate=j.billDate||'';
+        document.getElementById('billFormOverlay').style.display='none';
+        document.getElementById('mainApp').style.display='block';
         updateHeaderDisplay();
-        // Restore rows
         const tbody=document.getElementById('manualBody');
         tbody.innerHTML='';rowCount=0;
         if(j.rows&&j.rows.length>0){
@@ -352,11 +323,6 @@ async function openBill(filename){
         undoStack.length=0;redoStack.length=0;saveState();
         updateTotals();
     }catch(e){alert('Load failed: '+e.message);}
-}
-async function deleteBill(filename){
-    if(!confirm('Delete this bill?'))return;
-    await fetch('/api/bills/delete/'+encodeURIComponent(accountName)+'/'+encodeURIComponent(filename),{method:'DELETE'});
-    loadBillsList();
 }
 
 // Undo/Redo system
