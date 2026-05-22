@@ -281,6 +281,8 @@ function getRowData(){
     document.querySelectorAll('#manualBody tr').forEach(tr=>{
         const vals={};
         tr.querySelectorAll('input').forEach(inp=>{vals[inp.dataset.col]=inp.value;});
+        if(!vals['No1'])vals['No1']='1';
+        if(!vals['No2'])vals['No2']='1';
         rows.push(vals);
     });
     return rows;
@@ -619,12 +621,9 @@ function downloadCSV(){
     let csv='Particulars,No,L,B,D,Content\n';
     document.querySelectorAll('#manualBody tr').forEach(tr=>{
         const part=tr.querySelector('input[data-col="Particulars"]')?.value||'';
-        const n1=tr.querySelector('input[data-col="No1"]')?.value||'';
-        const n2=tr.querySelector('input[data-col="No2"]')?.value||'';
-        let noVal='';
-        if(n1&&n2)noVal=n1+' X '+n2;
-        else if(n1)noVal=n1;
-        else if(n2)noVal=n2;
+        const n1=tr.querySelector('input[data-col="No1"]')?.value||'1';
+        const n2=tr.querySelector('input[data-col="No2"]')?.value||'1';
+        let noVal=n1+' X '+n2;
         const vals=[part,noVal,...['L','B','D','Content'].map(c=>tr.querySelector('input[data-col="'+c+'"]')?.value||'')].map(v=>v.includes(',')?'"'+v+'"':v);
         csv+=vals.join(',')+'\n';
     });
