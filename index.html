@@ -8,15 +8,15 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        h1 { text-align: center; margin: 20px 0 6px; color: #1a73e8; }
+        h1 { text-align: center; margin: 20px 0 6px; color: #2e7d32; }
         .subtitle { text-align: center; color: #666; margin-bottom: 20px; font-size: 14px; }
         .data-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-        .data-table th { background: #1a73e8; color: #fff; padding: 8px 4px; font-size: 12px; text-align: center; white-space: nowrap; }
+        .data-table th { background: #2e7d32; color: #fff; padding: 8px 4px; font-size: 12px; text-align: center; white-space: nowrap; }
         .data-table th:first-child { border-radius: 8px 0 0 0; }
         .data-table th:last-child { border-radius: 0 8px 0 0; }
         .data-table td { padding: 3px 2px; text-align: center; border-bottom: 1px solid #eee; }
         .data-table input { width: 100%; padding: 6px 3px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; text-align: center; background: #fff; }
-        .data-table input:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+        .data-table input:focus { outline: none; border-color: #2e7d32; box-shadow: 0 0 0 2px rgba(46,125,50,0.15); }
         .data-table .calc { background: #f8f9fa; font-weight: 600; font-size: 13px; }
         .data-table .match { background: #e6f4ea; color: #188038; }
         .data-table .mismatch { background: #fce8e6; color: #d93025; }
@@ -26,6 +26,8 @@
         .btn { padding: 7px 16px; border: none; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; }
         .btn-sm { background: #f1f3f4; color: #333; border: 1px solid #ddd; }
         .btn-sm:hover { background: #e0e2e5; }
+        .btn-del { background: #fce8e6; color: #d93025; border-color: #f5c6cb; }
+        .btn-del:hover { background: #f5c6cb; }
         .btn-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
         .btn-row .spacer { flex: 1; }
         .summary { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
@@ -34,12 +36,13 @@
         .sbox .l { font-size: 10px; color: #666; }
         .sbox.g .v { color: #188038; }
         .sbox.r .v { color: #d93025; }
-        .sbox.b .v { color: #1a73e8; }
+        .sbox.b { background: #e8f5e9; }
+        .sbox.b .v { color: #2e7d32; }
         .total-row { background: #f0f2f5; font-weight: 700; }
         .total-row td { padding: 8px 4px; }
         .results { margin-top: 16px; }
         .result-table { background: #f8f9fa; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
-        .result-table h3 { margin-bottom: 10px; color: #1a73e8; font-size: 14px; }
+        .result-table h3 { margin-bottom: 10px; color: #2e7d32; font-size: 14px; }
         .result-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .result-table th { background: #e8eaed; color: #333; padding: 6px 8px; text-align: center; font-size: 12px; }
         .result-table td { padding: 5px 8px; text-align: center; border-bottom: 1px solid #eee; }
@@ -78,8 +81,8 @@
             .data-table { min-width: 460px; }
             .data-table th { font-size: 9px; padding: 5px 1px; width: auto !important; }
             .data-table td { padding: 1px; }
-            .data-table input { padding: 8px 1px; font-size: 14px; border-radius: 4px;
-                -webkit-appearance: none; }
+            .data-table input { padding: 10px 2px; font-size: 16px; border-radius: 4px;
+                -webkit-appearance: none; min-height: 44px; }
             .data-table .row-num { font-size: 9px; width: 16px; }
             .data-table .del-btn { font-size: 18px; padding: 6px 10px; color: #d93025; }
             .btn-row { gap: 4px; }
@@ -125,6 +128,7 @@
         <div class="btn-row">
             <button class="btn btn-sm" onclick="addRow()">+ Row</button>
             <button class="btn btn-sm" onclick="for(let i=0;i<5;i++)addRow()">+ 5 Rows</button>
+            <button class="btn btn-sm btn-del" onclick="deleteLastRow()">&#8722; Row</button>
             <button class="btn btn-sm" onclick="clearAll()">Clear All</button>
             <span class="spacer"></span>
             <button class="btn btn-sm" onclick="downloadCSV()">&#11015; CSV</button>
@@ -259,6 +263,7 @@ function updateTotals(){
     document.getElementById('ftStatus').innerHTML=rows>0?(Math.abs(td)<0.01?'<span style="color:#188038">&#10003;</span>':'<span style="color:#d93025">&#10007;</span>'):'';
 }
 function delRow(btn){saveState();btn.closest('tr').remove();renum();updateTotals();saveState();}
+function deleteLastRow(){const tbody=document.getElementById('manualBody');if(tbody.rows.length>1){saveState();tbody.removeChild(tbody.lastElementChild);rowCount--;renum();updateTotals();saveState();}}
 function renum(){document.querySelectorAll('#manualBody tr').forEach((tr,i)=>{tr.querySelector('.row-num').textContent=i+1;});}
 function clearAll(){saveState();document.getElementById('manualBody').innerHTML='';rowCount=0;for(let i=0;i<10;i++)addRow(true);updateTotals();saveState();}
 function downloadCSV(){
