@@ -94,17 +94,93 @@
             .sbox .l { font-size: 10px; }
             .total-row td { font-size: 11px; padding: 5px 1px; }
         }
+
+        /* Overlay shared */
+        .overlay { position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000; }
+        .overlay-box { background:#fff;border-radius:14px;padding:32px 28px;box-shadow:0 8px 32px rgba(0,0,0,0.25);text-align:center;min-width:340px;max-width:440px; }
+        .overlay-box h2 { color:#2e7d32;margin-bottom:6px; }
+        .overlay-box p.sub { color:#666;margin-bottom:14px;font-size:13px; }
+        .overlay-box input { width:100%;padding:10px 12px;margin:6px 0;border:1px solid #ccc;border-radius:7px;font-size:14px; }
+        .overlay-box input:focus { outline:none;border-color:#2e7d32;box-shadow:0 0 0 2px rgba(46,125,50,0.2); }
+        .overlay-box .btn-primary { width:100%;margin-top:10px;padding:11px;background:#2e7d32;color:#fff;border:none;border-radius:7px;font-size:15px;font-weight:600;cursor:pointer; }
+        .overlay-box .btn-primary:hover { background:#256d29; }
+
+        /* Saved bills panel */
+        .bills-panel { background:#f8f9fa;border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid #e0e0e0; }
+        .bills-panel h3 { color:#2e7d32;font-size:14px;margin-bottom:8px; }
+        .bills-list { max-height:180px;overflow-y:auto; }
+        .bill-item { display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid #eee;font-size:13px; }
+        .bill-item:hover { background:#e8f5e9; }
+        .bill-item .bill-info { cursor:pointer;flex:1; }
+        .bill-item .bill-info span { margin-right:12px; }
+        .bill-item .bill-del { color:#d93025;cursor:pointer;border:none;background:none;font-size:13px;font-weight:600;padding:2px 6px; }
+        .btn-save { background:#2e7d32;color:#fff;border:none; }
+        .btn-save:hover { background:#256d29; }
+        .btn-new { background:#1565c0;color:#fff;border:none; }
+        .btn-new:hover { background:#0d47a1; }
     </style>
 </head>
 <body>
-<div class="container">
+<!-- Account Entry -->
+<div class="overlay" id="acctOverlay">
+    <div class="overlay-box">
+        <h2>&#128207; Nandy Calculations</h2>
+        <p class="sub">Enter your account / project name</p>
+        <input type="text" id="acctInput" placeholder="Account Name" autofocus>
+        <button class="btn-primary" onclick="enterAccount()">Enter</button>
+    </div>
+</div>
+
+<!-- Bill Details Form -->
+<div class="overlay" id="billFormOverlay" style="display:none;">
+    <div class="overlay-box">
+        <h2>&#128196; Bill Details</h2>
+        <p class="sub">Enter details for this sheet</p>
+        <input type="text" id="formSheet" placeholder="Sheet Name">
+        <input type="text" id="formBill" placeholder="Bill Number">
+        <input type="text" id="formDate" placeholder="Date (DD-MM-YYYY)">
+        <button class="btn-primary" onclick="submitBillForm()">Next &#8594;</button>
+    </div>
+</div>
+
+<div class="container" id="mainApp" style="display:none;">
     <h1>&#128207; Nandy Calculations</h1>
     <p class="subtitle">Verifies No &times; L &times; B &times; D = Content</p>
+    <div style="text-align:center;margin-bottom:4px;">
+        <span style="font-size:13px;color:#888;">Account: </span><span style="font-size:14px;font-weight:700;color:#1565c0;" id="acctLabel"></span>
+        <button class="btn btn-sm" onclick="switchAccount()" style="margin-left:10px;font-size:11px;padding:3px 8px;">Switch Account</button>
+    </div>
+
+    <!-- Saved Bills Panel -->
+    <div class="bills-panel" id="billsPanel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <h3>&#128193; Saved Bills</h3>
+            <div>
+                <button class="btn btn-sm btn-new" onclick="newBill()">+ New Bill</button>
+                <button class="btn btn-sm" onclick="loadBillsList()">&#8635; Refresh</button>
+            </div>
+        </div>
+        <div class="bills-list" id="billsList"><em style="color:#999;font-size:12px;">No saved bills yet.</em></div>
+    </div>
+    <div style="text-align:center;margin-bottom:12px;display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:13px;color:#888;">Sheet:</span>
+        <span style="font-size:16px;font-weight:700;color:#2e7d32;cursor:pointer;" id="sheetLabel" onclick="inlineEdit('sheetLabel','sheetName')"></span>
+        <input type="text" id="sheetInput" style="display:none;font-size:14px;font-weight:700;color:#2e7d32;border:1px solid #2e7d32;border-radius:5px;padding:2px 6px;width:120px;text-align:center;" onblur="commitEdit('sheetLabel','sheetName','sheetInput')" onkeydown="if(event.key==='Enter')this.blur()">
+        <span style="color:#ddd;">|</span>
+        <span style="font-size:13px;color:#888;">Bill#:</span>
+        <span style="font-size:14px;font-weight:600;color:#1565c0;cursor:pointer;" id="billLabel" onclick="inlineEdit('billLabel','billNumber')"></span>
+        <input type="text" id="billInput" style="display:none;font-size:14px;font-weight:600;color:#1565c0;border:1px solid #1565c0;border-radius:5px;padding:2px 6px;width:100px;text-align:center;" onblur="commitEdit('billLabel','billNumber','billInput')" onkeydown="if(event.key==='Enter')this.blur()">
+        <span style="color:#ddd;">|</span>
+        <span style="font-size:13px;color:#888;">Date:</span>
+        <span style="font-size:14px;font-weight:600;color:#555;cursor:pointer;" id="dateLabel" onclick="inlineEdit('dateLabel','billDate')"></span>
+        <input type="text" id="dateInput" style="display:none;font-size:14px;font-weight:600;color:#555;border:1px solid #888;border-radius:5px;padding:2px 6px;width:110px;text-align:center;" onblur="commitEdit('dateLabel','billDate','dateInput')" onkeydown="if(event.key==='Enter')this.blur()">
+    </div>
     <div class="card-wrap" style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
         <div class="table-wrap">
         <table class="data-table" id="manualTable">
             <thead><tr>
                 <th style="width:28px">#</th>
+                <th style="width:140px">Particulars</th>
                 <th style="width:80px">No</th>
                 <th style="width:80px">L</th>
                 <th style="width:80px">B</th>
@@ -117,7 +193,7 @@
             </tr></thead>
             <tbody id="manualBody"></tbody>
             <tfoot><tr class="total-row">
-                <td colspan="5" style="text-align:right">Totals:</td>
+                <td colspan="6" style="text-align:right">Totals:</td>
                 <td class="calc" id="ftGiven">0</td>
                 <td class="calc" id="ftCalc">0</td>
                 <td class="calc" id="ftDiff">0</td>
@@ -131,6 +207,7 @@
             <button class="btn btn-sm btn-del" onclick="deleteLastRow()">&#8722; Row</button>
             <button class="btn btn-sm" onclick="clearAll()">Clear All</button>
             <span class="spacer"></span>
+            <button class="btn btn-sm btn-save" onclick="saveBill()">&#128190; Save</button>
             <button class="btn btn-sm" onclick="downloadCSV()">&#11015; CSV</button>
         </div>
         <p class="kb-hint">
@@ -147,12 +224,140 @@
             <div class="sbox g"><div class="v" id="sOk">0</div><div class="l">Correct</div></div>
             <div class="sbox r"><div class="v" id="sBad">0</div><div class="l">Incorrect</div></div>
             <div class="sbox b"><div class="v" id="sSum">0</div><div class="l">Content Sum</div></div>
+            <div class="sbox" style="background:#e3f2fd;"><div class="v" id="sCalcSum" style="color:#1565c0;">0</div><div class="l">Calculated Sum</div></div>
         </div>
     </div>
 </div>
 <script>
-const COLS=['No','L','B','D','Content'];
+const COLS=['Particulars','No','L','B','D','Content'];
 let rowCount=0;
+let sheetName='';
+let billNumber='';
+let billDate='';
+let accountName='';
+
+// ── Account Entry ────────────────────────────────────────────────
+document.getElementById('acctInput').addEventListener('keydown',e=>{if(e.key==='Enter')enterAccount();});
+
+function enterAccount(){
+    const v=document.getElementById('acctInput').value.trim();
+    if(!v){alert('Please enter an account name.');return;}
+    accountName=v;
+    document.getElementById('acctOverlay').style.display='none';
+    document.getElementById('mainApp').style.display='block';
+    document.getElementById('acctLabel').textContent=accountName;
+    loadBillsList();
+}
+function switchAccount(){
+    accountName='';
+    document.getElementById('mainApp').style.display='none';
+    document.getElementById('acctOverlay').style.display='flex';
+    document.getElementById('acctInput').value='';
+    document.getElementById('acctInput').focus();
+    document.getElementById('manualBody').innerHTML='';rowCount=0;
+}
+
+// ── Bill Details Form (single window) ────────────────────────────
+function showBillForm(){
+    const today=new Date();
+    const dd=String(today.getDate()).padStart(2,'0')+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+today.getFullYear();
+    document.getElementById('formSheet').value='';
+    document.getElementById('formBill').value='';
+    document.getElementById('formDate').value=dd;
+    document.getElementById('billFormOverlay').style.display='flex';
+    document.getElementById('formSheet').focus();
+}
+function submitBillForm(){
+    const s=document.getElementById('formSheet').value.trim();
+    const b=document.getElementById('formBill').value.trim();
+    const d=document.getElementById('formDate').value.trim();
+    if(!s){alert('Please enter a sheet name.');return;}
+    if(!b){alert('Please enter a bill number.');return;}
+    sheetName=s;
+    billNumber=b;
+    billDate=d||'';
+    document.getElementById('billFormOverlay').style.display='none';
+    updateHeaderDisplay();
+    // Reset table for new bill
+    const tbody=document.getElementById('manualBody');
+    tbody.innerHTML='';rowCount=0;
+    for(let i=0;i<10;i++)addRow(true);
+    undoStack.length=0;redoStack.length=0;saveState();
+}
+function newBill(){showBillForm();}
+
+// ── Save / Load / List bills ─────────────────────────────────────
+function getRowData(){
+    const rows=[];
+    document.querySelectorAll('#manualBody tr').forEach(tr=>{
+        const vals={};
+        tr.querySelectorAll('input').forEach(inp=>{vals[inp.dataset.col]=inp.value;});
+        rows.push(vals);
+    });
+    return rows;
+}
+async function saveBill(){
+    if(!sheetName||!billNumber){alert('Sheet name and bill number are required. Click "+ New Bill" first.');return;}
+    const body={account:accountName,sheetName:sheetName,billNumber:billNumber,billDate:billDate,rows:getRowData()};
+    try{
+        const res=await fetch('/api/bills/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const j=await res.json();
+        if(j.ok){alert('Saved successfully: '+j.filename);loadBillsList();}
+        else{alert('Save error: '+(j.error||'Unknown'));}
+    }catch(e){alert('Save failed: '+e.message);}
+}
+async function loadBillsList(){
+    if(!accountName)return;
+    try{
+        const res=await fetch('/api/bills/list/'+encodeURIComponent(accountName));
+        const j=await res.json();
+        const el=document.getElementById('billsList');
+        if(!j.bills||j.bills.length===0){el.innerHTML='<em style="color:#999;font-size:12px;">No saved bills yet. Click "+ New Bill" to start.</em>';return;}
+        el.innerHTML='';
+        j.bills.forEach(b=>{
+            const div=document.createElement('div');div.className='bill-item';
+            const infoDiv=document.createElement('div');infoDiv.className='bill-info';
+            infoDiv.innerHTML='<span style="font-weight:600">'+escH(b.sheetName||'')+'</span>'
+                +'<span style="color:#1565c0">Bill#: '+escH(b.billNumber||'')+'</span>'
+                +'<span style="color:#888">'+escH(b.billDate||'')+'</span>';
+            infoDiv.addEventListener('click',()=>openBill(b.filename));
+            const delBtn=document.createElement('button');delBtn.className='bill-del';delBtn.innerHTML='&#10005;';
+            delBtn.addEventListener('click',()=>deleteBill(b.filename));
+            div.appendChild(infoDiv);div.appendChild(delBtn);
+            el.appendChild(div);
+        });
+    }catch(e){console.error('List bills error',e);}
+}
+function escH(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+async function openBill(filename){
+    try{
+        const res=await fetch('/api/bills/load/'+encodeURIComponent(accountName)+'/'+encodeURIComponent(filename));
+        const j=await res.json();
+        if(j.error){alert(j.error);return;}
+        sheetName=j.sheetName||'';billNumber=j.billNumber||'';billDate=j.billDate||'';
+        updateHeaderDisplay();
+        // Restore rows
+        const tbody=document.getElementById('manualBody');
+        tbody.innerHTML='';rowCount=0;
+        if(j.rows&&j.rows.length>0){
+            j.rows.forEach(vals=>{
+                addRow(true);
+                const tr=tbody.lastElementChild;
+                tr.querySelectorAll('input').forEach(inp=>{
+                    if(vals[inp.dataset.col]!==undefined&&vals[inp.dataset.col]!=='')inp.value=vals[inp.dataset.col];
+                });
+                recalcRow(tr);
+            });
+        } else {for(let i=0;i<10;i++)addRow(true);}
+        undoStack.length=0;redoStack.length=0;saveState();
+        updateTotals();
+    }catch(e){alert('Load failed: '+e.message);}
+}
+async function deleteBill(filename){
+    if(!confirm('Delete this bill?'))return;
+    await fetch('/api/bills/delete/'+encodeURIComponent(accountName)+'/'+encodeURIComponent(filename),{method:'DELETE'});
+    loadBillsList();
+}
 
 // Undo/Redo system
 const undoStack=[], redoStack=[];
@@ -210,6 +415,7 @@ function parseExpr(raw){
 function addRow(skipSave){
     rowCount++;const tr=document.createElement('tr');
     tr.innerHTML='<td class="row-num">'+rowCount+'</td>'
+        +'<td><input type="text" data-col="Particulars" placeholder="Description" style="text-align:left"></td>'
         +'<td style="white-space:nowrap"><input type="text" data-col="No1" placeholder="1" style="width:38%;text-align:center"> <span style="color:#888;font-weight:bold">&times;</span> <input type="text" data-col="No2" placeholder="1" style="width:38%;text-align:center"></td>'
         +'<td><input type="text" data-col="L" placeholder="0.000"></td>'
         +'<td><input type="text" data-col="B" placeholder="0.000"></td>'
@@ -256,6 +462,7 @@ function updateTotals(){
     });
     document.getElementById('sRows').textContent=rows;document.getElementById('sOk').textContent=ok;
     document.getElementById('sBad').textContent=bad;document.getElementById('sSum').textContent=Math.round(givenSum*10000)/10000;
+    document.getElementById('sCalcSum').textContent=Math.round(calcSum*10000)/10000;
     document.getElementById('ftGiven').textContent=Math.round(givenSum*10000)/10000;
     document.getElementById('ftCalc').textContent=Math.round(calcSum*10000)/10000;
     const td=Math.round((givenSum-calcSum)*10000)/10000;
@@ -267,12 +474,20 @@ function deleteLastRow(){const tbody=document.getElementById('manualBody');if(tb
 function renum(){document.querySelectorAll('#manualBody tr').forEach((tr,i)=>{tr.querySelector('.row-num').textContent=i+1;});}
 function clearAll(){saveState();document.getElementById('manualBody').innerHTML='';rowCount=0;for(let i=0;i<10;i++)addRow(true);updateTotals();saveState();}
 function downloadCSV(){
-    let csv='No1,No2,L,B,D,Content\n';
+    let csv='Particulars,No1,No2,L,B,D,Content\n';
     document.querySelectorAll('#manualBody tr').forEach(tr=>{
-        const vals=['No1','No2','L','B','D','Content'].map(c=>tr.querySelector('input[data-col="'+c+'"]')?.value||'');
+        const vals=['Particulars','No1','No2','L','B','D','Content'].map(c=>{
+            let v=tr.querySelector('input[data-col="'+c+'"]')?.value||'';
+            if(v.includes(','))v='"'+v+'"';
+            return v;
+        });
         csv+=vals.join(',')+'\n';
     });
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='measurement_data.csv';a.click();
+    const s=(sheetName||'Sheet').replace(/[^a-zA-Z0-9_\- ]/g,'');
+    const b=(billNumber||'NA').replace(/[^a-zA-Z0-9_\- ]/g,'');
+    const d=(billDate||'nodate').replace(/[^a-zA-Z0-9_\- ]/g,'');
+    const fname=s+'_'+b+'_'+d;
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=fname+'.csv';a.click();
 }
 function handleCellNav(e){
     const inp=e.target,tr=inp.closest('tr'),tbody=tr.closest('tbody');
@@ -327,8 +542,33 @@ function handlePaste(e){
     }
     saveState();
 }
-for(let i=0;i<10;i++)addRow(true);
-saveState();
+function updateHeaderDisplay(){
+    document.getElementById('sheetLabel').textContent=sheetName||'Untitled';
+    document.getElementById('billLabel').textContent=billNumber||'NA';
+    document.getElementById('dateLabel').textContent=billDate||'';
+    document.title='Nandy - '+sheetName+' | '+billNumber;
+}
+const fieldMap={sheetName:()=>sheetName, billNumber:()=>billNumber, billDate:()=>billDate};
+const inputMap={sheetName:'sheetInput', billNumber:'billInput', billDate:'dateInput'};
+function inlineEdit(labelId,field){
+    const label=document.getElementById(labelId);
+    const inp=document.getElementById(inputMap[field]);
+    inp.value=fieldMap[field]();
+    label.style.display='none';
+    inp.style.display='inline-block';
+    inp.focus();inp.select();
+}
+function commitEdit(labelId,field,inputId){
+    const label=document.getElementById(labelId);
+    const inp=document.getElementById(inputId);
+    const v=inp.value.trim();
+    if(field==='sheetName')sheetName=v||'Untitled';
+    else if(field==='billNumber')billNumber=v||'NA';
+    else if(field==='billDate')billDate=v||'';
+    inp.style.display='none';
+    label.style.display='inline';
+    updateHeaderDisplay();
+}
 </script>
 </body>
 </html>

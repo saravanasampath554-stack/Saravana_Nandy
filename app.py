@@ -15,7 +15,12 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import pandas as pd
 
+import hashlib
+import json
+
 FRONTEND_DIR = os.path.dirname(__file__)
+SAVED_BILLS_DIR = os.path.join(os.path.dirname(__file__), 'saved_bills')
+ACCOUNTS_FILE = os.path.join(os.path.dirname(__file__), 'accounts.json')
 
 app = Flask(__name__, static_folder=FRONTEND_DIR)
 CORS(app)
@@ -747,6 +752,152 @@ def verify_manual():
 @app.route('/')
 def index():
     return send_from_directory(FRONTEND_DIR, 'index.html')
+
+
+# ── Account management ────────────────────────────────────────────
+
+def _load_accounts():
+    if os.path.isfile(ACCOUNTS_FILE):
+        with open(ACCOUNTS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+
+def _save_accounts(accounts):
+    with open(ACCOUNTS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(accounts, f, ensure_ascii=False, indent=2)
+
+
+def _hash_password(password):
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+
+@app.route('/api/account/register', methods=['POST'])
+def register_account():
+    data = request.get_json()
+    account = _safe_name(data.get('account', ''))
+    password = data.get('password', '')
+    if not account or not password:
+        return jsonify({'error': 'Account name and password are required'}), 400
+    if len(password) < 4:
+        return jsonify({'error': 'Password must be at least 4 characters'}), 400
+
+    accounts = _load_accounts()
+    if account in accounts:
+        return jsonify({'error': 'Account already exists. Please login.'}), 409
+
+    accounts[account] = _hash_password(password)
+    _save_accounts(accounts)
+    os.makedirs(os.path.join(SAVED_BILLS_DIR, account), exist_ok=True)
+    return jsonify({'ok': True})
+
+
+@app.route('/api/account/login', methods=['POST'])
+def login_account():
+    data = request.get_json()
+    account = _safe_name(data.get('account', ''))
+    password = data.get('password', '')
+    if not account or not password:
+        return jsonify({'error': 'Account name and password are required'}), 400
+
+    accounts = _load_accounts()
+    if account not in accounts:
+        return jsonify({'error': 'Account not found. Please register first.'}), 404
+    if accounts[account] != _hash_password(password):
+        return jsonify({'error': 'Incorrect password.'}), 401
+
+    return jsonify({'ok': True})
+
+
+# ── Bill save / load / list / delete ──────────────────────────────
+
+def _safe_name(name):
+    """Sanitize a user-supplied name to a safe filesystem component."""
+    return re.sub(r'[^A-Za-z0-9_\- ]', '', str(name).strip())[:120]
+
+
+@app.route('/api/bills/save', methods=['POST'])
+def save_bill():
+    """Save a bill's dashboard data as JSON under saved_bills/<account>/."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data'}), 400
+
+    account = _safe_name(data.get('account', ''))
+    sheet = _safe_name(data.get('sheetName', 'Untitled'))
+    bill = _safe_name(data.get('billNumber', 'NA'))
+    date = _safe_name(data.get('billDate', ''))
+
+    if not account:
+        return jsonify({'error': 'Account name is required'}), 400
+
+    acct_dir = os.path.join(SAVED_BILLS_DIR, account)
+    os.makedirs(acct_dir, exist_ok=True)
+
+    filename = f"{sheet}_{bill}_{date}.json"
+    filepath = os.path.join(acct_dir, filename)
+
+    payload = {
+        'sheetName': data.get('sheetName', ''),
+        'billNumber': data.get('billNumber', ''),
+        'billDate': data.get('billDate', ''),
+        'rows': data.get('rows', [])
+    }
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+    return jsonify({'ok': True, 'filename': filename})
+
+
+@app.route('/api/bills/list/<account>', methods=['GET'])
+def list_bills(account):
+    """List all saved bills for a given account."""
+    account = _safe_name(account)
+    acct_dir = os.path.join(SAVED_BILLS_DIR, account)
+    if not os.path.isdir(acct_dir):
+        return jsonify({'bills': []})
+
+    bills = []
+    for fname in sorted(os.listdir(acct_dir)):
+        if fname.endswith('.json'):
+            fpath = os.path.join(acct_dir, fname)
+            try:
+                with open(fpath, 'r', encoding='utf-8') as f:
+                    info = json.load(f)
+                bills.append({
+                    'filename': fname,
+                    'sheetName': info.get('sheetName', ''),
+                    'billNumber': info.get('billNumber', ''),
+                    'billDate': info.get('billDate', ''),
+                })
+            except Exception:
+                bills.append({'filename': fname})
+    return jsonify({'bills': bills})
+
+
+@app.route('/api/bills/load/<account>/<filename>', methods=['GET'])
+def load_bill(account, filename):
+    """Load a specific saved bill."""
+    account = _safe_name(account)
+    filename = _safe_name(filename.replace('.json', '')) + '.json'
+    fpath = os.path.join(SAVED_BILLS_DIR, account, filename)
+    if not os.path.isfile(fpath):
+        return jsonify({'error': 'Bill not found'}), 404
+    with open(fpath, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return jsonify(data)
+
+
+@app.route('/api/bills/delete/<account>/<filename>', methods=['DELETE'])
+def delete_bill(account, filename):
+    """Delete a saved bill."""
+    account = _safe_name(account)
+    filename = _safe_name(filename.replace('.json', '')) + '.json'
+    fpath = os.path.join(SAVED_BILLS_DIR, account, filename)
+    if os.path.isfile(fpath):
+        os.remove(fpath)
+        return jsonify({'ok': True})
+    return jsonify({'error': 'Not found'}), 404
 
 
 if __name__ == '__main__':
