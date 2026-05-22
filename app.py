@@ -819,17 +819,14 @@ def _safe_name(name):
 @app.route('/api/bills/save', methods=['POST'])
 def save_bill():
     """Save a bill's dashboard data as JSON under saved_bills/<account>/."""
-    data = request.get_json()
+    data = request.get_json(force=True, silent=True)
     if not data:
-        return jsonify({'error': 'No data'}), 400
+        return jsonify({'error': 'No data received'}), 400
 
-    account = _safe_name(data.get('account', ''))
-    sheet = _safe_name(data.get('sheetName', 'Untitled'))
-    bill = _safe_name(data.get('billNumber', 'NA'))
+    account = _safe_name(data.get('account', 'default')) or 'default'
+    sheet = _safe_name(data.get('sheetName', 'Untitled')) or 'Untitled'
+    bill = _safe_name(data.get('billNumber', 'NA')) or 'NA'
     date = _safe_name(data.get('billDate', ''))
-
-    if not account:
-        return jsonify({'error': 'Account name is required'}), 400
 
     acct_dir = os.path.join(SAVED_BILLS_DIR, account)
     os.makedirs(acct_dir, exist_ok=True)
