@@ -135,7 +135,10 @@
         <input type="text" id="formDate" placeholder="Date (DD-MM-YYYY)">
         <button class="btn-primary" onclick="submitBillForm()">Next &#8594;</button>
         <div style="margin-top:16px;text-align:left;">
-            <h3 style="color:#2e7d32;font-size:13px;margin-bottom:6px;">&#128193; Saved Bills</h3>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <h3 style="color:#2e7d32;font-size:13px;">&#128193; Saved Bills</h3>
+                <button onclick="promptGitHubToken()" style="background:none;border:1px solid #ccc;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;color:#555;" title="Set GitHub token for cloud sync">&#9729; <span id="ghStatus" style="color:#999;">Connect</span></button>
+            </div>
             <div class="bills-list" id="startBillsList" style="max-height:150px;"><em style="color:#999;font-size:12px;">Loading...</em></div>
         </div>
     </div>
@@ -215,7 +218,10 @@
         <div class="bills-panel" style="margin-top:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                 <h3 style="color:#2e7d32;font-size:13px;">&#128193; Saved Bills</h3>
-                <button class="btn btn-sm" onclick="loadDashBills()" style="font-size:11px;padding:3px 8px;">&#8635; Refresh</button>
+                <div style="display:flex;gap:4px;">
+                    <button onclick="promptGitHubToken()" style="background:none;border:1px solid #ccc;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;color:#555;">&#9729; <span id="ghStatus2">Connect</span></button>
+                    <button class="btn btn-sm" onclick="loadDashBills()" style="font-size:11px;padding:3px 8px;">&#8635; Refresh</button>
+                </div>
             </div>
             <div class="bills-list" id="dashBillsList"><em style="color:#999;font-size:12px;">Loading...</em></div>
         </div>
@@ -234,6 +240,7 @@ const accountName='default';
     const today=new Date();
     const dd=String(today.getDate()).padStart(2,'0')+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+today.getFullYear();
     document.getElementById('formDate').value=dd;
+    updateGhStatus();
     loadStartBills();
 })();
 
@@ -278,21 +285,68 @@ function getRowData(){
     });
     return rows;
 }
-// ── localStorage bill helpers ──
-function _getBills(){try{return JSON.parse(localStorage.getItem('savedBills')||'{}');}catch(e){return {};}}
-function _setBills(obj){localStorage.setItem('savedBills',JSON.stringify(obj));}
+// ── GitHub API bill storage (cloud) + localStorage (cache) ───────
+const GH_OWNER='saravanasampath554-stack', GH_REPO='Saravana_Nandy', GH_BILLS_PATH='bills';
+function _getToken(){return localStorage.getItem('ghToken')||'';}
+function _setToken(t){localStorage.setItem('ghToken',t);}
+function promptGitHubToken(){
+    const cur=_getToken();
+    const t=prompt('Enter your GitHub Personal Access Token (classic)\\nNeeds "repo" scope.\\nhttps://github.com/settings/tokens\\n\\nLeave empty to disconnect.',cur);
+    if(t===null)return;
+    _setToken(t.trim());
+    updateGhStatus();
+    loadStartBills();loadDashBills();
+}
+function updateGhStatus(){
+    const el=document.getElementById('ghStatus');
+    if(el) el.textContent=_getToken()?'Connected':'Connect';
+    const el2=document.getElementById('ghStatus2');
+    if(el2) el2.textContent=_getToken()?'Connected':'Connect';
+}
 
-function saveBill(){
+// localStorage cache helpers
+function _getBillsCache(){try{return JSON.parse(localStorage.getItem('savedBills')||'{}');}catch(e){return {};}}
+function _setBillsCache(obj){localStorage.setItem('savedBills',JSON.stringify(obj));}
+
+// GitHub API helpers
+async function ghApi(path,opts={}){
+    const token=_getToken();
+    if(!token)throw new Error('No GitHub token');
+    const url='https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path;
+    const headers={'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'};
+    if(opts.body)headers['Content-Type']='application/json';
+    const res=await fetch(url,{...opts,headers});
+    if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.substring(0,200));}
+    return res.json();
+}
+
+async function saveBill(){
     if(!sheetName||!billNumber){alert('Sheet name and bill number are required. Click "+ New Bill" first.');return;}
     const sheet=sheetName.replace(/[^A-Za-z0-9_ -]/g,'').substring(0,120)||'Untitled';
     const bill=billNumber.replace(/[^A-Za-z0-9_ -]/g,'').substring(0,120)||'NA';
     const dt=(billDate||'').replace(/[^A-Za-z0-9_ -]/g,'');
     const filename=sheet+'_'+bill+'_'+dt+'.json';
     const payload={sheetName:sheetName,billNumber:billNumber,billDate:billDate,rows:getRowData()};
-    const bills=_getBills();
-    bills[filename]=payload;
-    _setBills(bills);
-    alert('Saved: '+filename);
+
+    // Always save to localStorage cache
+    const bills=_getBillsCache();bills[filename]=payload;_setBillsCache(bills);
+
+    // Try GitHub
+    const token=_getToken();
+    if(token){
+        try{
+            const content=btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2))));
+            // Check if file exists (to get sha for update)
+            let sha=null;
+            try{const existing=await ghApi(GH_BILLS_PATH+'/'+filename);sha=existing.sha;}catch(e){}
+            const body={message:'Save bill: '+filename,content:content};
+            if(sha)body.sha=sha;
+            await ghApi(GH_BILLS_PATH+'/'+filename,{method:'PUT',body:JSON.stringify(body)});
+            alert('Saved to GitHub: '+filename);
+        }catch(e){alert('Saved locally. GitHub error: '+e.message);}
+    }else{
+        alert('Saved locally: '+filename+'\\n(Connect GitHub to sync everywhere)');
+    }
     loadStartBills();loadDashBills();
 }
 function escH(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
@@ -307,19 +361,66 @@ function renderBillsList(el, bills){
             +'<span style="color:#888">'+escH(b.billDate||'')+'</span>';
         infoDiv.addEventListener('click',()=>openBill(b.filename));
         const delBtn=document.createElement('button');delBtn.className='bill-del';delBtn.innerHTML='&#10005;';
-        delBtn.addEventListener('click',()=>{if(!confirm('Delete this bill?'))return;const bs=_getBills();delete bs[b.filename];_setBills(bs);loadStartBills();loadDashBills();});
+        delBtn.addEventListener('click',async()=>{
+            if(!confirm('Delete this bill?'))return;
+            // Delete from cache
+            const bs=_getBillsCache();delete bs[b.filename];_setBillsCache(bs);
+            // Delete from GitHub
+            const token=_getToken();
+            if(token){
+                try{const f=await ghApi(GH_BILLS_PATH+'/'+b.filename);
+                await ghApi(GH_BILLS_PATH+'/'+b.filename,{method:'DELETE',body:JSON.stringify({message:'Delete bill: '+b.filename,sha:f.sha})});
+                }catch(e){console.warn('GitHub delete error:',e);}
+            }
+            loadStartBills();loadDashBills();
+        });
         div.appendChild(infoDiv);div.appendChild(delBtn);
         el.appendChild(div);
     });
 }
-function loadStartBills(){
-    const bills=_getBills();
-    const list=Object.keys(bills).map(fn=>{const b=bills[fn];return{filename:fn,sheetName:b.sheetName,billNumber:b.billNumber,billDate:b.billDate};});
+async function loadStartBills(){
+    const list=await _getAllBills();
     renderBillsList(document.getElementById('startBillsList'),list);
 }
-function openBill(filename){
-    const bills=_getBills();
-    const j=bills[filename];
+async function _getAllBills(){
+    const token=_getToken();
+    if(token){
+        try{
+            const files=await ghApi(GH_BILLS_PATH);
+            const list=[];
+            const cache=_getBillsCache();
+            for(const f of files){
+                if(!f.name.endsWith('.json'))continue;
+                // Try cache first, otherwise parse name
+                if(cache[f.name]){
+                    list.push({filename:f.name,sheetName:cache[f.name].sheetName,billNumber:cache[f.name].billNumber,billDate:cache[f.name].billDate});
+                }else{
+                    const parts=f.name.replace('.json','').split('_');
+                    list.push({filename:f.name,sheetName:parts[0]||'',billNumber:parts[1]||'',billDate:parts[2]||''});
+                }
+            }
+            return list;
+        }catch(e){console.warn('GitHub list error, using cache:',e);}
+    }
+    // Fallback to localStorage
+    const bills=_getBillsCache();
+    return Object.keys(bills).map(fn=>{const b=bills[fn];return{filename:fn,sheetName:b.sheetName,billNumber:b.billNumber,billDate:b.billDate};});
+}
+async function openBill(filename){
+    let j=null;
+    // Try cache first
+    const cache=_getBillsCache();
+    if(cache[filename]){j=cache[filename];}
+    // If not in cache but have token, fetch from GitHub
+    if(!j&&_getToken()){
+        try{
+            const f=await ghApi(GH_BILLS_PATH+'/'+filename);
+            const decoded=decodeURIComponent(escape(atob(f.content.replace(/\n/g,''))));
+            j=JSON.parse(decoded);
+            // Update cache
+            cache[filename]=j;_setBillsCache(cache);
+        }catch(e){alert('Load failed: '+e.message);return;}
+    }
     if(!j){alert('Bill not found');return;}
     sheetName=j.sheetName||'';billNumber=j.billNumber||'';billDate=j.billDate||'';
     document.getElementById('billFormOverlay').style.display='none';
@@ -341,9 +442,8 @@ function openBill(filename){
     updateTotals();
     loadDashBills();
 }
-function loadDashBills(){
-    const bills=_getBills();
-    const list=Object.keys(bills).map(fn=>{const b=bills[fn];return{filename:fn,sheetName:b.sheetName,billNumber:b.billNumber,billDate:b.billDate};});
+async function loadDashBills(){
+    const list=await _getAllBills();
     const el=document.getElementById('dashBillsList');
     if(el)renderBillsList(el,list);
 }
