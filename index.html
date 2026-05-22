@@ -312,10 +312,10 @@ function _setBillsCache(obj){localStorage.setItem('savedBills',JSON.stringify(ob
 
 // GitHub API helpers
 async function ghApi(path,opts={}){
-    const token=_getToken();
-    if(!token)throw new Error('No GitHub token');
     const url='https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path;
-    const headers={'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'};
+    const headers={'Accept':'application/vnd.github.v3+json'};
+    const token=_getToken();
+    if(token)headers['Authorization']='token '+token;
     if(opts.body)headers['Content-Type']='application/json';
     const res=await fetch(url,{...opts,headers});
     if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.substring(0,200));}
@@ -385,25 +385,21 @@ async function loadStartBills(){
     renderBillsList(document.getElementById('startBillsList'),list);
 }
 async function _getAllBills(){
-    const token=_getToken();
-    if(token){
-        try{
-            const files=await ghApi(GH_BILLS_PATH);
-            const list=[];
-            const cache=_getBillsCache();
-            for(const f of files){
-                if(!f.name.endsWith('.json'))continue;
-                // Try cache first, otherwise parse name
-                if(cache[f.name]){
-                    list.push({filename:f.name,sheetName:cache[f.name].sheetName,billNumber:cache[f.name].billNumber,billDate:cache[f.name].billDate});
-                }else{
-                    const parts=f.name.replace('.json','').split('_');
-                    list.push({filename:f.name,sheetName:parts[0]||'',billNumber:parts[1]||'',billDate:parts[2]||''});
-                }
+    try{
+        const files=await ghApi(GH_BILLS_PATH);
+        const list=[];
+        const cache=_getBillsCache();
+        for(const f of files){
+            if(!f.name.endsWith('.json'))continue;
+            if(cache[f.name]){
+                list.push({filename:f.name,sheetName:cache[f.name].sheetName,billNumber:cache[f.name].billNumber,billDate:cache[f.name].billDate});
+            }else{
+                const parts=f.name.replace('.json','').split('_');
+                list.push({filename:f.name,sheetName:parts[0]||'',billNumber:parts[1]||'',billDate:parts[2]||''});
             }
-            return list;
-        }catch(e){console.warn('GitHub list error, using cache:',e);}
-    }
+        }
+        return list;
+    }catch(e){console.warn('GitHub list error, using cache:',e);}
     // Fallback to localStorage
     const bills=_getBillsCache();
     return Object.keys(bills).map(fn=>{const b=bills[fn];return{filename:fn,sheetName:b.sheetName,billNumber:b.billNumber,billDate:b.billDate};});
@@ -413,13 +409,12 @@ async function openBill(filename){
     // Try cache first
     const cache=_getBillsCache();
     if(cache[filename]){j=cache[filename];}
-    // If not in cache but have token, fetch from GitHub
-    if(!j&&_getToken()){
+    // If not in cache, fetch from GitHub (public, no token needed)
+    if(!j){
         try{
             const f=await ghApi(GH_BILLS_PATH+'/'+filename);
             const decoded=decodeURIComponent(escape(atob(f.content.replace(/\n/g,''))));
             j=JSON.parse(decoded);
-            // Update cache
             cache[filename]=j;_setBillsCache(cache);
         }catch(e){alert('Load failed: '+e.message);return;}
     }
