@@ -819,31 +819,35 @@ def _safe_name(name):
 @app.route('/api/bills/save', methods=['POST'])
 def save_bill():
     """Save a bill's dashboard data as JSON under saved_bills/<account>/."""
-    data = request.get_json(force=True, silent=True)
-    if not data:
-        return jsonify({'error': 'No data received'}), 400
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            return jsonify({'error': 'No data received'}), 400
 
-    account = _safe_name(data.get('account', 'default')) or 'default'
-    sheet = _safe_name(data.get('sheetName', 'Untitled')) or 'Untitled'
-    bill = _safe_name(data.get('billNumber', 'NA')) or 'NA'
-    date = _safe_name(data.get('billDate', ''))
+        account = _safe_name(data.get('account', 'default')) or 'default'
+        sheet = _safe_name(data.get('sheetName', 'Untitled')) or 'Untitled'
+        bill = _safe_name(data.get('billNumber', 'NA')) or 'NA'
+        date = _safe_name(data.get('billDate', ''))
 
-    acct_dir = os.path.join(SAVED_BILLS_DIR, account)
-    os.makedirs(acct_dir, exist_ok=True)
+        acct_dir = os.path.join(SAVED_BILLS_DIR, account)
+        os.makedirs(acct_dir, exist_ok=True)
 
-    filename = f"{sheet}_{bill}_{date}.json"
-    filepath = os.path.join(acct_dir, filename)
+        filename = f"{sheet}_{bill}_{date}.json"
+        filepath = os.path.join(acct_dir, filename)
 
-    payload = {
-        'sheetName': data.get('sheetName', ''),
-        'billNumber': data.get('billNumber', ''),
-        'billDate': data.get('billDate', ''),
-        'rows': data.get('rows', [])
-    }
-    with open(filepath, 'w', encoding='utf-8') as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+        payload = {
+            'sheetName': data.get('sheetName', ''),
+            'billNumber': data.get('billNumber', ''),
+            'billDate': data.get('billDate', ''),
+            'rows': data.get('rows', [])
+        }
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
 
-    return jsonify({'ok': True, 'filename': filename})
+        return jsonify({'ok': True, 'filename': filename})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/bills/list/<account>', methods=['GET'])
