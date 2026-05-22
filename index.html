@@ -49,6 +49,10 @@
         .kb-hint { font-size: 11px; color: #999; margin-top: 6px; }
         .kb-hint kbd { background: #e8eaed; border: 1px solid #ccc; border-radius: 3px; padding: 1px 5px; font-size: 10px; font-family: inherit; }
         .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        /* Drag-to-fill handle */
+        .data-table td { position: relative; }
+        .fill-handle { position:absolute;right:0;bottom:0;width:8px;height:8px;background:#2e7d32;cursor:crosshair;z-index:2;border:1px solid #fff; }
+        .fill-highlight input { background:#e8f5e9 !important; }
 
         /* Tablet */
         @media (max-width: 768px) {
@@ -416,8 +420,61 @@ function addRow(skipSave){
         inp.addEventListener('input',()=>{recalcRow(tr);clearTimeout(debounceTimer);debounceTimer=setTimeout(saveState,300);});
         inp.addEventListener('keydown',handleCellNav);
         inp.addEventListener('paste',handlePaste);
+        // Add fill handle
+        const handle=document.createElement('div');handle.className='fill-handle';
+        handle.addEventListener('mousedown',e=>startFill(e,inp));
+        inp.parentElement.appendChild(handle);
     });
     if(!skipSave)saveState();
+}
+
+// ── Drag-to-fill (Excel-style) ──
+let fillSource=null,fillCol=null,fillStartRow=null;
+function startFill(e,inp){
+    e.preventDefault();
+    fillSource=inp.value;
+    fillCol=inp.dataset.col;
+    const tr=inp.closest('tr');
+    fillStartRow=Array.from(tr.closest('tbody').querySelectorAll('tr')).indexOf(tr);
+    document.addEventListener('mousemove',onFillMove);
+    document.addEventListener('mouseup',onFillUp);
+}
+function onFillMove(e){
+    const tbody=document.getElementById('manualBody');
+    const rows=Array.from(tbody.querySelectorAll('tr'));
+    // Clear previous highlights
+    rows.forEach(r=>r.classList.remove('fill-highlight'));
+    // Find which row the cursor is over
+    for(let i=0;i<rows.length;i++){
+        const rect=rows[i].getBoundingClientRect();
+        if(e.clientY>=rect.top&&e.clientY<=rect.bottom){
+            const lo=Math.min(fillStartRow,i),hi=Math.max(fillStartRow,i);
+            for(let j=lo;j<=hi;j++)rows[j].classList.add('fill-highlight');
+            break;
+        }
+    }
+}
+function onFillUp(e){
+    document.removeEventListener('mousemove',onFillMove);
+    document.removeEventListener('mouseup',onFillUp);
+    const tbody=document.getElementById('manualBody');
+    const rows=Array.from(tbody.querySelectorAll('tr'));
+    // Find end row
+    let endRow=fillStartRow;
+    for(let i=0;i<rows.length;i++){
+        const rect=rows[i].getBoundingClientRect();
+        if(e.clientY>=rect.top&&e.clientY<=rect.bottom){endRow=i;break;}
+    }
+    const lo=Math.min(fillStartRow,endRow),hi=Math.max(fillStartRow,endRow);
+    saveState();
+    for(let i=lo;i<=hi;i++){
+        if(i===fillStartRow)continue;
+        const inp=rows[i].querySelector('input[data-col="'+fillCol+'"]');
+        if(inp){inp.value=fillSource;recalcRow(rows[i]);}
+    }
+    rows.forEach(r=>r.classList.remove('fill-highlight'));
+    saveState();
+    fillSource=null;fillCol=null;fillStartRow=null;
 }
 function recalcRow(tr){
     const g=col=>parseExpr(tr.querySelector('input[data-col="'+col+'"]')?.value);
@@ -459,13 +516,16 @@ function deleteLastRow(){const tbody=document.getElementById('manualBody');if(tb
 function renum(){document.querySelectorAll('#manualBody tr').forEach((tr,i)=>{tr.querySelector('.row-num').textContent=i+1;});}
 function clearAll(){saveState();document.getElementById('manualBody').innerHTML='';rowCount=0;for(let i=0;i<10;i++)addRow(true);updateTotals();saveState();}
 function downloadCSV(){
-    let csv='Particulars,No1,No2,L,B,D,Content\n';
+    let csv='Particulars,No,L,B,D,Content\n';
     document.querySelectorAll('#manualBody tr').forEach(tr=>{
-        const vals=['Particulars','No1','No2','L','B','D','Content'].map(c=>{
-            let v=tr.querySelector('input[data-col="'+c+'"]')?.value||'';
-            if(v.includes(','))v='"'+v+'"';
-            return v;
-        });
+        const part=tr.querySelector('input[data-col="Particulars"]')?.value||'';
+        const n1=tr.querySelector('input[data-col="No1"]')?.value||'';
+        const n2=tr.querySelector('input[data-col="No2"]')?.value||'';
+        let noVal='';
+        if(n1&&n2)noVal=n1+' X '+n2;
+        else if(n1)noVal=n1;
+        else if(n2)noVal=n2;
+        const vals=[part,noVal,...['L','B','D','Content'].map(c=>tr.querySelector('input[data-col="'+c+'"]')?.value||'')].map(v=>v.includes(',')?'"'+v+'"':v);
         csv+=vals.join(',')+'\n';
     });
     const s=(sheetName||'Sheet').replace(/[^a-zA-Z0-9_\- ]/g,'');
