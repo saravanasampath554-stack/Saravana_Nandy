@@ -274,17 +274,22 @@ function getRowData(){
     });
     return rows;
 }
-async function saveBill(){
+// ── localStorage bill helpers ──
+function _getBills(){try{return JSON.parse(localStorage.getItem('savedBills')||'{}');}catch(e){return {};}}
+function _setBills(obj){localStorage.setItem('savedBills',JSON.stringify(obj));}
+
+function saveBill(){
     if(!sheetName||!billNumber){alert('Sheet name and bill number are required. Click "+ New Bill" first.');return;}
-    const body={account:accountName,sheetName:sheetName,billNumber:billNumber,billDate:billDate,rows:getRowData()};
-    try{
-        const res=await fetch('/api/bills/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-        const text=await res.text();
-        let j;
-        try{j=JSON.parse(text);}catch(pe){alert('Server error ('+res.status+'): '+text.substring(0,200));return;}
-        if(j.ok){alert('Saved: '+j.filename);loadStartBills();loadDashBills();}
-        else{alert('Save error: '+(j.error||'Unknown'));}
-    }catch(e){alert('Save failed: '+e.message);}
+    const sheet=sheetName.replace(/[^A-Za-z0-9_ -]/g,'').substring(0,120)||'Untitled';
+    const bill=billNumber.replace(/[^A-Za-z0-9_ -]/g,'').substring(0,120)||'NA';
+    const dt=(billDate||'').replace(/[^A-Za-z0-9_ -]/g,'');
+    const filename=sheet+'_'+bill+'_'+dt+'.json';
+    const payload={sheetName:sheetName,billNumber:billNumber,billDate:billDate,rows:getRowData()};
+    const bills=_getBills();
+    bills[filename]=payload;
+    _setBills(bills);
+    alert('Saved: '+filename);
+    loadStartBills();loadDashBills();
 }
 function escH(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 function renderBillsList(el, bills){
@@ -298,51 +303,45 @@ function renderBillsList(el, bills){
             +'<span style="color:#888">'+escH(b.billDate||'')+'</span>';
         infoDiv.addEventListener('click',()=>openBill(b.filename));
         const delBtn=document.createElement('button');delBtn.className='bill-del';delBtn.innerHTML='&#10005;';
-        delBtn.addEventListener('click',async ()=>{if(!confirm('Delete this bill?'))return;await fetch('/api/bills/delete/'+encodeURIComponent(accountName)+'/'+encodeURIComponent(b.filename),{method:'DELETE'});loadStartBills();loadDashBills();});
+        delBtn.addEventListener('click',()=>{if(!confirm('Delete this bill?'))return;const bs=_getBills();delete bs[b.filename];_setBills(bs);loadStartBills();loadDashBills();});
         div.appendChild(infoDiv);div.appendChild(delBtn);
         el.appendChild(div);
     });
 }
-async function loadStartBills(){
-    try{
-        const res=await fetch('/api/bills/list/'+encodeURIComponent(accountName));
-        const j=await res.json();
-        renderBillsList(document.getElementById('startBillsList'),j.bills);
-    }catch(e){document.getElementById('startBillsList').innerHTML='<em style="color:#999;font-size:12px;">Could not load bills.</em>';}
+function loadStartBills(){
+    const bills=_getBills();
+    const list=Object.keys(bills).map(fn=>{const b=bills[fn];return{filename:fn,sheetName:b.sheetName,billNumber:b.billNumber,billDate:b.billDate};});
+    renderBillsList(document.getElementById('startBillsList'),list);
 }
-async function openBill(filename){
-    try{
-        const res=await fetch('/api/bills/load/'+encodeURIComponent(accountName)+'/'+encodeURIComponent(filename));
-        const j=await res.json();
-        if(j.error){alert(j.error);return;}
-        sheetName=j.sheetName||'';billNumber=j.billNumber||'';billDate=j.billDate||'';
-        document.getElementById('billFormOverlay').style.display='none';
-        document.getElementById('mainApp').style.display='block';
-        updateHeaderDisplay();
-        const tbody=document.getElementById('manualBody');
-        tbody.innerHTML='';rowCount=0;
-        if(j.rows&&j.rows.length>0){
-            j.rows.forEach(vals=>{
-                addRow(true);
-                const tr=tbody.lastElementChild;
-                tr.querySelectorAll('input').forEach(inp=>{
-                    if(vals[inp.dataset.col]!==undefined&&vals[inp.dataset.col]!=='')inp.value=vals[inp.dataset.col];
-                });
-                recalcRow(tr);
+function openBill(filename){
+    const bills=_getBills();
+    const j=bills[filename];
+    if(!j){alert('Bill not found');return;}
+    sheetName=j.sheetName||'';billNumber=j.billNumber||'';billDate=j.billDate||'';
+    document.getElementById('billFormOverlay').style.display='none';
+    document.getElementById('mainApp').style.display='block';
+    updateHeaderDisplay();
+    const tbody=document.getElementById('manualBody');
+    tbody.innerHTML='';rowCount=0;
+    if(j.rows&&j.rows.length>0){
+        j.rows.forEach(vals=>{
+            addRow(true);
+            const tr=tbody.lastElementChild;
+            tr.querySelectorAll('input').forEach(inp=>{
+                if(vals[inp.dataset.col]!==undefined&&vals[inp.dataset.col]!=='')inp.value=vals[inp.dataset.col];
             });
-        } else {for(let i=0;i<10;i++)addRow(true);}
-        undoStack.length=0;redoStack.length=0;saveState();
-        updateTotals();
-        loadDashBills();
-    }catch(e){alert('Load failed: '+e.message);}
+            recalcRow(tr);
+        });
+    } else {for(let i=0;i<10;i++)addRow(true);}
+    undoStack.length=0;redoStack.length=0;saveState();
+    updateTotals();
+    loadDashBills();
 }
-async function loadDashBills(){
-    try{
-        const res=await fetch('/api/bills/list/'+encodeURIComponent(accountName));
-        const j=await res.json();
-        const el=document.getElementById('dashBillsList');
-        if(el)renderBillsList(el,j.bills);
-    }catch(e){const el=document.getElementById('dashBillsList');if(el)el.innerHTML='<em style="color:#999;font-size:12px;">Could not load bills.</em>';}
+function loadDashBills(){
+    const bills=_getBills();
+    const list=Object.keys(bills).map(fn=>{const b=bills[fn];return{filename:fn,sheetName:b.sheetName,billNumber:b.billNumber,billDate:b.billDate};});
+    const el=document.getElementById('dashBillsList');
+    if(el)renderBillsList(el,list);
 }
 
 // Undo/Redo system
