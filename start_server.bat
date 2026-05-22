@@ -1,10 +1,10 @@
 @echo off
 echo ============================================
-echo  Measurement Dashboard - Production Server
+echo  Nandy Calculations - Production Server
 echo ============================================
 echo.
 
-cd /d "%~dp0backend"
+cd /d "%~dp0"
 
 :: Get the machine's IP address
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4 Address"') do (

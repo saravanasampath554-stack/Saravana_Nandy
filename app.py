@@ -15,7 +15,7 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-FRONTEND_DIR = os.path.join(os.path.dirname(__file__), '..', 'frontend')
+FRONTEND_DIR = os.path.dirname(__file__)
 
 app = Flask(__name__, static_folder=FRONTEND_DIR)
 CORS(app)

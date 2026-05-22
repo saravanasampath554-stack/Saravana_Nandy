@@ -8,8 +8,9 @@ uploads/
 .DS_Store
 Thumbs.db
 *.bak
-preprocessed.png
-test_enhanced.png
-test_ocr*.py
 *.xlsx
-extracted_image_*.jpeg
+*.jpeg
+*.png
+test_ocr*.py
+backend/
+frontend/

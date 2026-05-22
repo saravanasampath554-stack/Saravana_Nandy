@@ -1,9 +1,0 @@
-flask
-flask-cors
-pandas
-openpyxl
-tabula-py
-pdf2image
-pytesseract
-Pillow
-camelot-py[cv]
