@@ -281,8 +281,6 @@ function getRowData(){
     document.querySelectorAll('#manualBody tr').forEach(tr=>{
         const vals={};
         tr.querySelectorAll('input').forEach(inp=>{vals[inp.dataset.col]=inp.value;});
-        if(!vals['No1'])vals['No1']='1';
-        if(!vals['No2'])vals['No2']='1';
         rows.push(vals);
     });
     return rows;
