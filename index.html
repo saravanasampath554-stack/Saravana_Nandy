@@ -37,24 +37,77 @@
         .sbox.b .v { color: #1a73e8; }
         .total-row { background: #f0f2f5; font-weight: 700; }
         .total-row td { padding: 8px 4px; }
+        .results { margin-top: 16px; }
+        .result-table { background: #f8f9fa; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+        .result-table h3 { margin-bottom: 10px; color: #1a73e8; font-size: 14px; }
+        .result-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .result-table th { background: #e8eaed; color: #333; padding: 6px 8px; text-align: center; font-size: 12px; }
+        .result-table td { padding: 5px 8px; text-align: center; border-bottom: 1px solid #eee; }
         .kb-hint { font-size: 11px; color: #999; margin-top: 6px; }
         .kb-hint kbd { background: #e8eaed; border: 1px solid #ccc; border-radius: 3px; padding: 1px 5px; font-size: 10px; font-family: inherit; }
+        .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+        /* Tablet */
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            h1 { font-size: 20px; margin: 10px 0 4px; }
+            .subtitle { font-size: 12px; margin-bottom: 10px; }
+            .data-table { min-width: 520px; }
+            .data-table th { padding: 6px 2px; font-size: 10px;
+                width: auto !important; }
+            .data-table td { padding: 2px 1px; }
+            .data-table input { padding: 7px 2px; font-size: 13px; }
+            .data-table .row-num { font-size: 10px; }
+            .data-table .del-btn { font-size: 16px; padding: 4px 8px; }
+            .btn { padding: 10px 14px; font-size: 13px; }
+            .sbox { min-width: 70px; padding: 8px; }
+            .sbox .v { font-size: 18px; }
+            .sbox .l { font-size: 9px; }
+            .summary { gap: 6px; }
+            .kb-hint { display: none; }
+            .total-row td { font-size: 12px; padding: 6px 2px; }
+        }
+
+        /* Phone */
+        @media (max-width: 480px) {
+            body { font-size: 13px; }
+            .container { padding: 6px; }
+            h1 { font-size: 18px; margin: 8px 0 2px; }
+            .subtitle { font-size: 11px; margin-bottom: 8px; }
+            .card-wrap { padding: 10px !important; border-radius: 8px !important; }
+            .data-table { min-width: 460px; }
+            .data-table th { font-size: 9px; padding: 5px 1px; width: auto !important; }
+            .data-table td { padding: 1px; }
+            .data-table input { padding: 8px 1px; font-size: 14px; border-radius: 4px;
+                -webkit-appearance: none; }
+            .data-table .row-num { font-size: 9px; width: 16px; }
+            .data-table .del-btn { font-size: 18px; padding: 6px 10px; color: #d93025; }
+            .btn-row { gap: 4px; }
+            .btn { padding: 11px 12px; font-size: 13px; border-radius: 6px; flex: 1; min-width: 0; text-align: center; }
+            .btn-row .spacer { display: none; }
+            .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+            .sbox { min-width: 0; padding: 10px 6px; }
+            .sbox .v { font-size: 20px; }
+            .sbox .l { font-size: 10px; }
+            .total-row td { font-size: 11px; padding: 5px 1px; }
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>&#128207; Nandy Calculations</h1>
     <p class="subtitle">Verifies No &times; L &times; B &times; D = Content</p>
-    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+    <div class="card-wrap" style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <div class="table-wrap">
         <table class="data-table" id="manualTable">
             <thead><tr>
                 <th style="width:28px">#</th>
-                <th style="width:120px">No</th>
+                <th style="width:80px">No</th>
                 <th style="width:80px">L</th>
                 <th style="width:80px">B</th>
                 <th style="width:80px">D</th>
                 <th style="width:90px">Content<br><span style="font-weight:400;font-size:10px">(Given)</span></th>
-                <th style="width:90px">Calc<br><span style="font-weight:400;font-size:10px">(No&times;L&times;B&times;D)</span></th>
+                <th style="width:90px">Calc<br><span style="font-weight:400;font-size:10px">(No×L×B×D)</span></th>
                 <th style="width:70px">Diff</th>
                 <th style="width:36px"></th>
                 <th style="width:28px"></th>
@@ -68,6 +121,7 @@
                 <td id="ftStatus"></td><td></td>
             </tr></tfoot>
         </table>
+        </div>
         <div class="btn-row">
             <button class="btn btn-sm" onclick="addRow()">+ Row</button>
             <button class="btn btn-sm" onclick="for(let i=0;i<5;i++)addRow()">+ 5 Rows</button>
@@ -215,6 +269,33 @@ function downloadCSV(){
     });
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='measurement_data.csv';a.click();
 }
+function handleCellNav(e){
+    const inp=e.target,tr=inp.closest('tr'),tbody=tr.closest('tbody');
+    const allRows=Array.from(tbody.querySelectorAll('tr'));
+    const allCells=Array.from(tr.querySelectorAll('input'));
+    const colIdx=allCells.indexOf(inp),rowIdx=allRows.indexOf(tr);
+    let tR=rowIdx,tC=colIdx,handled=false;
+    switch(e.key){
+        case'ArrowUp':tR=Math.max(0,rowIdx-1);handled=true;break;
+        case'ArrowDown':tR=Math.min(allRows.length-1,rowIdx+1);handled=true;break;
+        case'ArrowLeft':if(inp.selectionStart===0&&inp.selectionEnd===0){tC=Math.max(0,colIdx-1);handled=true;}break;
+        case'ArrowRight':if(inp.selectionStart===inp.value.length){tC=Math.min(allCells.length-1,colIdx+1);handled=true;}break;
+        case'Enter':
+            if(e.shiftKey){tR=Math.max(0,rowIdx-1);}
+            else{if(rowIdx===allRows.length-1){addRow();}tR=Math.min(allRows.length,rowIdx+1);}
+            handled=true;break;
+        case'Tab':
+            if(e.shiftKey){if(colIdx===0&&rowIdx>0){tR=rowIdx-1;tC=COLS.length-1;handled=true;}}
+            else{if(colIdx===allCells.length-1){if(rowIdx===allRows.length-1)addRow();tR=rowIdx+1;tC=0;handled=true;}}
+            break;
+    }
+    if(handled){
+        e.preventDefault();
+        const rows2=Array.from(tbody.querySelectorAll('tr'));
+        const newRow=rows2[tR];
+        if(newRow){const inputs=newRow.querySelectorAll('input');const t=inputs[Math.min(tC,inputs.length-1)];if(t){t.focus();t.select();}}
+    }
+}
 function handlePaste(e){
     const clip=e.clipboardData.getData('text/plain');
     if(!clip)return;
@@ -240,33 +321,6 @@ function handlePaste(e){
         recalcRow(row);
     }
     saveState();
-}
-function handleCellNav(e){
-    const inp=e.target,tr=inp.closest('tr'),tbody=tr.closest('tbody');
-    const allRows=Array.from(tbody.querySelectorAll('tr'));
-    const allCells=Array.from(tr.querySelectorAll('input'));
-    const colIdx=allCells.indexOf(inp),rowIdx=allRows.indexOf(tr);
-    let tR=rowIdx,tC=colIdx,handled=false;
-    switch(e.key){
-        case'ArrowUp':tR=Math.max(0,rowIdx-1);handled=true;break;
-        case'ArrowDown':tR=Math.min(allRows.length-1,rowIdx+1);handled=true;break;
-        case'ArrowLeft':if(inp.selectionStart===0&&inp.selectionEnd===0){tC=Math.max(0,colIdx-1);handled=true;}break;
-        case'ArrowRight':if(inp.selectionStart===inp.value.length){tC=Math.min(allCells.length-1,colIdx+1);handled=true;}break;
-        case'Enter':
-            if(e.shiftKey){tR=Math.max(0,rowIdx-1);}
-            else{if(rowIdx===allRows.length-1){addRow();}tR=Math.min(allRows.length,rowIdx+1);}
-            handled=true;break;
-        case'Tab':
-            if(e.shiftKey){if(colIdx===0&&rowIdx>0){tR=rowIdx-1;tC=allCells.length-1;handled=true;}}
-            else{if(colIdx===allCells.length-1){if(rowIdx===allRows.length-1)addRow();tR=rowIdx+1;tC=0;handled=true;}}
-            break;
-    }
-    if(handled){
-        e.preventDefault();
-        const rows2=Array.from(tbody.querySelectorAll('tr'));
-        const newRow=rows2[tR];
-        if(newRow){const inputs=newRow.querySelectorAll('input');const t=inputs[Math.min(tC,inputs.length-1)];if(t){t.focus();t.select();}}
-    }
 }
 for(let i=0;i<10;i++)addRow(true);
 saveState();
