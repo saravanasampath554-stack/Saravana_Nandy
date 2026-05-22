@@ -1,0 +1,312 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nandy Calculations</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        h1 { text-align: center; margin: 20px 0 6px; color: #1a73e8; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 20px; font-size: 14px; }
+        .tabs { display: flex; gap: 0; margin-bottom: 0; }
+        .tab-btn { flex: 1; padding: 12px 20px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; background: #e0e2e5; color: #666; border-radius: 10px 10px 0 0; transition: all 0.2s; }
+        .tab-btn.active { background: #fff; color: #1a73e8; box-shadow: 0 -2px 6px rgba(0,0,0,0.06); }
+        .tab-btn:hover:not(.active) { background: #d5d7da; }
+        .tab-content { display: none; background: #fff; border-radius: 0 0 12px 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tab-content.active { display: block; }
+        .split { display: flex; gap: 20px; flex-wrap: wrap; }
+        .split .left { flex: 0 0 380px; max-width: 380px; }
+        .split .right { flex: 1; min-width: 400px; }
+        .img-panel { background: #f8f9fa; border-radius: 10px; padding: 14px; }
+        .img-panel h3 { color: #1a73e8; margin-bottom: 10px; font-size: 14px; }
+        .img-upload-box { border: 2px dashed #ccc; border-radius: 8px; padding: 30px 16px; text-align: center; cursor: pointer; transition: all 0.2s; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .img-upload-box:hover { border-color: #1a73e8; background: #e8f0fe; }
+        .img-upload-box svg { width: 36px; height: 36px; fill: #999; margin-bottom: 8px; }
+        .img-upload-box p { color: #666; font-size: 13px; }
+        .img-upload-box input { display: none; }
+        .img-preview { max-width: 100%; border-radius: 6px; cursor: zoom-in; }
+        .img-controls { display: flex; gap: 6px; margin-top: 8px; }
+        .img-controls button { flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: 12px; }
+        .img-controls button:hover { background: #e8f0fe; border-color: #1a73e8; }
+        .file-upload-area { margin-top: 14px; padding-top: 14px; border-top: 1px solid #eee; }
+        .file-upload-inline { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .file-upload-inline label { padding: 8px 16px; background: #1a73e8; color: #fff; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; white-space: nowrap; }
+        .file-upload-inline label:hover { background: #1557b0; }
+        .file-upload-inline input { display: none; }
+        .file-upload-inline .hint { font-size: 12px; color: #999; }
+        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        .data-table th { background: #1a73e8; color: #fff; padding: 8px 4px; font-size: 12px; text-align: center; white-space: nowrap; }
+        .data-table th:first-child { border-radius: 8px 0 0 0; }
+        .data-table th:last-child { border-radius: 0 8px 0 0; }
+        .data-table td { padding: 3px 2px; text-align: center; border-bottom: 1px solid #eee; }
+        .data-table input { width: 100%; padding: 6px 3px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; text-align: center; background: #fff; }
+        .data-table input:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+        .data-table .calc { background: #f8f9fa; font-weight: 600; font-size: 13px; }
+        .data-table .match { background: #e6f4ea; color: #188038; }
+        .data-table .mismatch { background: #fce8e6; color: #d93025; }
+        .data-table .row-num { color: #aaa; font-size: 12px; width: 24px; }
+        .data-table .del-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 14px; padding: 2px 6px; }
+        .data-table .del-btn:hover { color: #d93025; }
+        .btn { padding: 7px 16px; border: none; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .btn-sm { background: #f1f3f4; color: #333; border: 1px solid #ddd; }
+        .btn-sm:hover { background: #e0e2e5; }
+        .btn-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .btn-row .spacer { flex: 1; }
+        .summary { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .sbox { flex: 1; min-width: 90px; background: #f8f9fa; border-radius: 8px; padding: 10px; text-align: center; }
+        .sbox .v { font-size: 22px; font-weight: 700; }
+        .sbox .l { font-size: 10px; color: #666; }
+        .sbox.g .v { color: #188038; }
+        .sbox.r .v { color: #d93025; }
+        .sbox.b .v { color: #1a73e8; }
+        .total-row { background: #f0f2f5; font-weight: 700; }
+        .total-row td { padding: 8px 4px; }
+        .results { margin-top: 16px; }
+        .result-table { background: #f8f9fa; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+        .result-table h3 { margin-bottom: 10px; color: #1a73e8; font-size: 14px; }
+        .result-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .result-table th { background: #e8eaed; color: #333; padding: 6px 8px; text-align: center; font-size: 12px; }
+        .result-table td { padding: 5px 8px; text-align: center; border-bottom: 1px solid #eee; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .badge.ok { background: #e6f4ea; color: #188038; }
+        .badge.err { background: #fce8e6; color: #d93025; }
+        .kb-hint { font-size: 11px; color: #999; margin-top: 6px; }
+        .kb-hint kbd { background: #e8eaed; border: 1px solid #ccc; border-radius: 3px; padding: 1px 5px; font-size: 10px; font-family: inherit; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>&#128207; Nandy Calculations</h1>
+    <p class="subtitle">Verifies No × L × B × D = Content</p>
+    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <table class="data-table" id="manualTable">
+            <thead><tr>
+                <th style="width:28px">#</th>
+                <th style="width:80px">No</th>
+                <th style="width:80px">L</th>
+                <th style="width:80px">B</th>
+                <th style="width:80px">D</th>
+                <th style="width:90px">Content<br><span style="font-weight:400;font-size:10px">(Given)</span></th>
+                <th style="width:90px">Calc<br><span style="font-weight:400;font-size:10px">(No×L×B×D)</span></th>
+                <th style="width:70px">Diff</th>
+                <th style="width:36px"></th>
+                <th style="width:28px"></th>
+            </tr></thead>
+            <tbody id="manualBody"></tbody>
+            <tfoot><tr class="total-row">
+                <td colspan="5" style="text-align:right">Totals:</td>
+                <td class="calc" id="ftGiven">0</td>
+                <td class="calc" id="ftCalc">0</td>
+                <td class="calc" id="ftDiff">0</td>
+                <td id="ftStatus"></td><td></td>
+            </tr></tfoot>
+        </table>
+        <div class="btn-row">
+            <button class="btn btn-sm" onclick="addRow()">+ Row</button>
+            <button class="btn btn-sm" onclick="for(let i=0;i<5;i++)addRow()">+ 5 Rows</button>
+            <button class="btn btn-sm" onclick="clearAll()">Clear All</button>
+            <span class="spacer"></span>
+            <button class="btn btn-sm" onclick="downloadCSV()">&#11015; CSV</button>
+        </div>
+        <p class="kb-hint">
+            <kbd>&#8593;</kbd> <kbd>&#8595;</kbd> <kbd>&#8592;</kbd> <kbd>&#8594;</kbd> navigate cells |
+            <kbd>Tab</kbd> next cell |
+            <kbd>Enter</kbd> move down |
+            <kbd>Shift+Enter</kbd> move up |
+            Supports: <code>2*3</code>, <code>2x3x4</code>
+        </p>
+        <div class="summary">
+            <div class="sbox b"><div class="v" id="sRows">0</div><div class="l">Rows</div></div>
+            <div class="sbox g"><div class="v" id="sOk">0</div><div class="l">Correct</div></div>
+            <div class="sbox r"><div class="v" id="sBad">0</div><div class="l">Incorrect</div></div>
+            <div class="sbox b"><div class="v" id="sSum">0</div><div class="l">Content Sum</div></div>
+        </div>
+    </div>
+</div>
+<script>
+const COLS=['No','L','B','D','Content'];
+let rowCount=0;
+
+// Undo/Redo system
+const undoStack=[], redoStack=[];
+const MAX_UNDO=50;
+function getTableState(){
+    const rows=[];
+    document.querySelectorAll('#manualBody tr').forEach(tr=>{
+        const vals={};
+        tr.querySelectorAll('input').forEach(inp=>{vals[inp.dataset.col]=inp.value;});
+        rows.push(vals);
+    });
+    return JSON.stringify(rows);
+}
+function saveState(){
+    const s=getTableState();
+    if(undoStack.length>0&&undoStack[undoStack.length-1]===s)return;
+    undoStack.push(s);
+    if(undoStack.length>MAX_UNDO)undoStack.shift();
+    redoStack.length=0;
+}
+function restoreState(json){
+    const rows=JSON.parse(json);
+    const tbody=document.getElementById('manualBody');
+    tbody.innerHTML='';rowCount=0;
+    rows.forEach(vals=>{
+        addRow(true);
+        const tr=tbody.lastElementChild;
+        tr.querySelectorAll('input').forEach(inp=>{
+            if(vals[inp.dataset.col]!==undefined)inp.value=vals[inp.dataset.col];
+        });
+        recalcRow(tr);
+    });
+}
+function undo(){
+    if(undoStack.length<2)return;
+    redoStack.push(undoStack.pop());
+    restoreState(undoStack[undoStack.length-1]);
+}
+function redo(){
+    if(redoStack.length===0)return;
+    const s=redoStack.pop();
+    undoStack.push(s);
+    restoreState(s);
+}
+document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo();}
+    if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo();}
+});
+
+function parseExpr(raw){
+    if(!raw||!raw.trim())return null;raw=raw.trim();
+    if(/[*xX\u00d7]/.test(raw)){const parts=raw.split(/[*xX\u00d7]/);let r=1;for(const p of parts){const n=parseFloat(p.trim());if(isNaN(n))return null;r*=n;}return r;}
+    const v=parseFloat(raw);return isNaN(v)?null:v;
+}
+function addRow(skipSave){
+    rowCount++;const tr=document.createElement('tr');
+    tr.innerHTML='<td class="row-num">'+rowCount+'</td>'
+        +'<td style="white-space:nowrap"><input type="text" data-col="No1" placeholder="1" style="width:38%;text-align:center"> <span style="color:#888;font-weight:bold">&times;</span> <input type="text" data-col="No2" placeholder="1" style="width:38%;text-align:center"></td>'
+        +'<td><input type="text" data-col="L" placeholder="0.000"></td>'
+        +'<td><input type="text" data-col="B" placeholder="0.000"></td>'
+        +'<td><input type="text" data-col="D" placeholder="0.000"></td>'
+        +'<td><input type="text" data-col="Content" placeholder="0.000"></td>'
+        +'<td class="calc" data-f="calc">\u2014</td>'
+        +'<td class="calc" data-f="diff">\u2014</td>'
+        +'<td data-f="st">\u2014</td>'
+        +'<td><button class="del-btn" onclick="delRow(this)" title="Delete">&#10005;</button></td>';
+    document.getElementById('manualBody').appendChild(tr);
+    let debounceTimer;
+    tr.querySelectorAll('input').forEach(inp=>{
+        inp.addEventListener('input',()=>{recalcRow(tr);clearTimeout(debounceTimer);debounceTimer=setTimeout(saveState,300);});
+        inp.addEventListener('keydown',handleCellNav);
+        inp.addEventListener('paste',handlePaste);
+    });
+    if(!skipSave)saveState();
+}
+function recalcRow(tr){
+    const g=col=>parseExpr(tr.querySelector('input[data-col="'+col+'"]')?.value);
+    const no1=g('No1'),no2=g('No2'),l=g('L'),b=g('B'),d=g('D'),content=g('Content');
+    const no=(no1!==null&&no2!==null)?no1*no2:(no1!==null?no1:(no2!==null?no2:null));
+    const calcEl=tr.querySelector('[data-f="calc"]'),diffEl=tr.querySelector('[data-f="diff"]'),stEl=tr.querySelector('[data-f="st"]');
+    const factors=[no,l,b,d].filter(v=>v!==null);
+    let calc=factors.length>0?factors.reduce((a,c)=>a*c,1):null;
+    if(calc!==null)calc=Math.round(calc*10000)/10000;
+    calcEl.textContent=calc!==null?calc:'\u2014';
+    if(calc!==null&&content!==null){
+        const diff=Math.round((content-calc)*10000)/10000;diffEl.textContent=diff;
+        const ok=Math.abs(diff)<0.01;
+        calcEl.className='calc '+(ok?'match':'mismatch');diffEl.className='calc '+(ok?'match':'mismatch');
+        stEl.innerHTML=ok?'<span style="color:#188038">&#10003;</span>':'<span style="color:#d93025">&#10007;</span>';
+    } else {diffEl.textContent='\u2014';calcEl.className='calc';diffEl.className='calc';stEl.textContent='\u2014';}
+    updateTotals();
+}
+function updateTotals(){
+    let rows=0,ok=0,bad=0,givenSum=0,calcSum=0;
+    document.querySelectorAll('#manualBody tr').forEach(tr=>{
+        const cv=parseFloat(tr.querySelector('input[data-col="Content"]')?.value);
+        const cc=parseFloat(tr.querySelector('[data-f="calc"]')?.textContent);
+        const df=parseFloat(tr.querySelector('[data-f="diff"]')?.textContent);
+        if(!isNaN(cv)||!isNaN(cc))rows++;if(!isNaN(cv))givenSum+=cv;if(!isNaN(cc))calcSum+=cc;
+        if(!isNaN(df)){Math.abs(df)<0.01?ok++:bad++;}
+    });
+    document.getElementById('sRows').textContent=rows;document.getElementById('sOk').textContent=ok;
+    document.getElementById('sBad').textContent=bad;document.getElementById('sSum').textContent=Math.round(givenSum*10000)/10000;
+    document.getElementById('ftGiven').textContent=Math.round(givenSum*10000)/10000;
+    document.getElementById('ftCalc').textContent=Math.round(calcSum*10000)/10000;
+    const td=Math.round((givenSum-calcSum)*10000)/10000;
+    document.getElementById('ftDiff').textContent=rows>0?td:0;
+    document.getElementById('ftStatus').innerHTML=rows>0?(Math.abs(td)<0.01?'<span style="color:#188038">&#10003;</span>':'<span style="color:#d93025">&#10007;</span>'):'';
+}
+function delRow(btn){saveState();btn.closest('tr').remove();renum();updateTotals();saveState();}
+function renum(){document.querySelectorAll('#manualBody tr').forEach((tr,i)=>{tr.querySelector('.row-num').textContent=i+1;});}
+function clearAll(){saveState();document.getElementById('manualBody').innerHTML='';rowCount=0;for(let i=0;i<10;i++)addRow(true);updateTotals();saveState();}
+function downloadCSV(){
+    let csv='No1,No2,L,B,D,Content\n';
+    document.querySelectorAll('#manualBody tr').forEach(tr=>{
+        const vals=['No1','No2','L','B','D','Content'].map(c=>tr.querySelector('input[data-col="'+c+'"]')?.value||'');
+        csv+=vals.join(',')+'\n';
+    });
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='measurement_data.csv';a.click();
+}
+function handlePaste(e){
+    const clip=e.clipboardData.getData('text/plain');
+    if(!clip)return;
+    const lines=clip.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
+    if(lines.length<=1&&!clip.includes('\t'))return; // single value, let default paste work
+    e.preventDefault();
+    saveState();
+    const inp=e.target,tr=inp.closest('tr'),tbody=tr.closest('tbody');
+    const allRows=Array.from(tbody.querySelectorAll('tr'));
+    const startRow=allRows.indexOf(tr);
+    const allCells=Array.from(tr.querySelectorAll('input'));
+    const startCol=allCells.indexOf(inp);
+    const INPUT_COLS=['No1','No2','L','B','D','Content'];
+    for(let r=0;r<lines.length;r++){
+        const cells=lines[r].split('\t');
+        let rowIdx=startRow+r;
+        // add rows if needed
+        while(rowIdx>=document.querySelectorAll('#manualBody tr').length)addRow(true);
+        const row=document.querySelectorAll('#manualBody tr')[rowIdx];
+        const inputs=Array.from(row.querySelectorAll('input'));
+        for(let c=0;c<cells.length;c++){
+            const colIdx=startCol+c;
+            if(colIdx<inputs.length){
+                inputs[colIdx].value=cells[c].trim();
+            }
+        }
+        recalcRow(row);
+    }
+    saveState();
+}
+function handleCellNav(e){
+    const inp=e.target,tr=inp.closest('tr'),tbody=tr.closest('tbody');
+    const allRows=Array.from(tbody.querySelectorAll('tr'));
+    const allCells=Array.from(tr.querySelectorAll('input'));
+    const colIdx=allCells.indexOf(inp),rowIdx=allRows.indexOf(tr);
+    let tR=rowIdx,tC=colIdx,handled=false;
+    switch(e.key){
+        case'ArrowUp':tR=Math.max(0,rowIdx-1);handled=true;break;
+        case'ArrowDown':tR=Math.min(allRows.length-1,rowIdx+1);handled=true;break;
+        case'ArrowLeft':if(inp.selectionStart===0&&inp.selectionEnd===0){tC=Math.max(0,colIdx-1);handled=true;}break;
+        case'ArrowRight':if(inp.selectionStart===inp.value.length){tC=Math.min(allCells.length-1,colIdx+1);handled=true;}break;
+        case'Enter':
+            if(e.shiftKey){tR=Math.max(0,rowIdx-1);}
+            else{if(rowIdx===allRows.length-1){addRow();}tR=Math.min(allRows.length,rowIdx+1);}
+            handled=true;break;
+        case'Tab':
+            if(e.shiftKey){if(colIdx===0&&rowIdx>0){tR=rowIdx-1;tC=COLS.length-1;handled=true;}}
+            else{if(colIdx===allCells.length-1){if(rowIdx===allRows.length-1)addRow();tR=rowIdx+1;tC=0;handled=true;}}
+            break;
+    }
+    if(handled){
+        e.preventDefault();
+        const rows2=Array.from(tbody.querySelectorAll('tr'));
+        const newRow=rows2[tR];
+        if(newRow){const inputs=newRow.querySelectorAll('input');const t=inputs[Math.min(tC,inputs.length-1)];if(t){t.focus();t.select();}}
+    }
+}
+for(let i=0;i<10;i++)addRow(true);
+saveState(); // initial state for undo
+</script>
+</body>
+</html>
